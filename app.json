@@ -1,0 +1,71 @@
+{
+  "expo": {
+    "name": "Optinix",
+    "slug": "optinix-android",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "scheme": "optinix",
+    "userInterfaceStyle": "dark",
+    "backgroundColor": "#070B12",
+    "primaryColor": "#00E5CC",
+    "newArchEnabled": true,
+    "assetBundlePatterns": ["**/*"],
+    "splash": {
+      "resizeMode": "contain",
+      "backgroundColor": "#070B12"
+    },
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "net.exitpoint.optinix"
+    },
+    "android": {
+      "package": "net.exitpoint.optinix",
+      "versionCode": 1,
+      "backgroundColor": "#070B12",
+      "predictiveBackGestureEnabled": false,
+      "blockedPermissions": [
+        "android.permission.QUERY_ALL_PACKAGES",
+        "android.permission.KILL_BACKGROUND_PROCESSES",
+        "android.permission.RECEIVE_BOOT_COMPLETED",
+        "android.permission.RECORD_AUDIO",
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.WRITE_EXTERNAL_STORAGE"
+      ],
+      "permissions": [
+        "android.permission.ACCESS_NETWORK_STATE",
+        "android.permission.ACCESS_WIFI_STATE",
+        "android.permission.VIBRATE",
+        "android.permission.FOREGROUND_SERVICE",
+        "android.permission.FOREGROUND_SERVICE_SPECIAL_USE",
+        "android.permission.POST_NOTIFICATIONS",
+        "android.permission.SYSTEM_ALERT_WINDOW",
+        "android.permission.PACKAGE_USAGE_STATS",
+        "android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS",
+        "android.permission.ACCESS_NOTIFICATION_POLICY",
+        "android.permission.FOREGROUND_SERVICE_MEDIA_PROJECTION"
+      ]
+    },
+    "web": {
+      "bundler": "metro",
+      "output": "single"
+    },
+    "plugins": [
+      "./plugins/withOptinixAndroid",
+      "expo-dev-client",
+      "expo-font",
+      [
+        "expo-splash-screen",
+        {
+          "backgroundColor": "#070B12",
+          "resizeMode": "contain"
+        }
+      ]
+    ],
+    "extra": {
+      "optinix": {
+        "apiPort": 5420,
+        "releaseChannel": "dev"
+      }
+    }
+  }
+}

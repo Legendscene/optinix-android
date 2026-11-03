@@ -1,0 +1,23 @@
+plugins {
+  id 'com.android.library'
+  id 'expo-module-gradle-plugin'
+}
+
+dependencies {
+  implementation 'com.facebook.react:react-android'
+  testImplementation 'junit:junit:4.13.2'
+}
+
+group = 'net.exitpoint.optinix'
+version = '1.0.0'
+
+android {
+  namespace "net.exitpoint.optinix.overlay"
+  lint {
+    abortOnError true
+  }
+  defaultConfig {
+    versionCode 1
+    versionName '1.0.0'
+  }
+}
