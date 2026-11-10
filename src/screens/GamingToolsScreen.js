@@ -22,6 +22,7 @@ export default function GamingToolsScreen({ navigation }) {
   const [note, setNote] = useState(null)
   const [busy, setBusy] = useState(false)
   const [captures, setCaptures] = useState([])
+  const disabled = preferences.overlayVisibility === 'disabled'
   useFocusEffect(useCallback(() => {
     let alive = true
     if (runtime.capture?.active) return () => { alive = false }
@@ -37,7 +38,7 @@ export default function GamingToolsScreen({ navigation }) {
   }
   const start = async (showOverlay) => {
     const config = gamingConfig(preferences, theme, reducedMotion)
-    if (preferences.notifications) await requestSessionNotifications()
+    if (preferences.notifications || preferences.overlayVisibility === 'notification') await requestSessionNotifications()
     await gamingNative.configure(config)
     return gamingNative.startSession({ ...config, showOverlay, profile: { id: 'custom', name: 'Custom session', overlay: showOverlay, intervalMs: config.intervalMs, reminderMinutes: preferences.reminderMinutes } })
   }
@@ -50,12 +51,28 @@ export default function GamingToolsScreen({ navigation }) {
       {runtime.running ? <>
         <Button label={runtime.session?.paused ? 'Resume timer' : 'Pause timer'} onPress={() => perform(() => gamingNative.timer(runtime.session?.paused ? 'resume' : 'pause'))} />
         <Button label="End session & stop tools" variant="ghost" onPress={() => perform(gamingNative.endSession)} />
+      </> : disabled ? <>
+        <ResultNotice result="Gaming service is completely disabled. The timer and both HUDs stay stopped until you change the visibility mode." />
+        <Button label="Change HUD visibility" onPress={() => navigation.navigate('Main', { screen: 'Settings' })} />
       </> : <>
         <Button label={capabilities.overlay ? 'Start floating HUD' : 'Enable overlay access'} loading={busy} onPress={() => perform(() => capabilities.overlay ? start(true) : gamingNative.openSettings('overlay'))} />
         <Button label="Start timer without overlay" variant="ghost" loading={busy} onPress={() => perform(() => start(false))} />
       </>}
     </Card>
     <ResultNotice result={note || runtime.error} />
+    {capabilities.overlayReason ? <ResultNotice result={capabilities.overlayReason} /> : null}
+    {runtime.running ? (
+      <Card style={{ gap: 12 }}>
+        <Type variant="h2">HUD visibility</Type>
+        <Type variant="bodySm" tone="secondary">
+          Hide removes the control HUD while keeping the session timer running. Reopen requests the dashboard over your next foreground library game. Notification-only mode returns to no handle when minimized. Completely Disabled in Settings stops the whole gaming service.
+        </Type>
+        <View style={{ flexDirection: 'row', gap: 8 }}>
+          <Button label="Hide HUD" loading={busy} onPress={() => perform(() => gamingNative.setOverlayVisible(false))} />
+          <Button label="Reopen / enable HUD" variant="ghost" loading={busy} onPress={() => perform(() => gamingNative.setOverlayVisible(true))} />
+        </View>
+      </Card>
+    ) : null}
     {runtime.settings?.length ? <Card style={{ gap: 12 }}><Type variant="h3">Last profile application</Type>{runtime.settings.map((setting, index) => <View key={`${setting.setting}-${index}`} style={{ gap: 3 }}><Type variant="label" tone={setting.status === 'applied' ? 'accentInk' : 'warn'}>{setting.setting}: {setting.status}</Type><Type variant="bodySm" tone="secondary">{setting.message}</Type></View>)}</Card> : null}
     <Card style={{ gap: 12 }}>
       <Type variant="h2">Focus & interruptions</Type>
@@ -71,6 +88,7 @@ export default function GamingToolsScreen({ navigation }) {
     </Card>
     <Card style={{ gap: 12 }}>
       <Type variant="h2">Capture the moment</Type>
+      {capabilities.captureAvailable === false ? <ResultNotice result="Android screen capture is unavailable on this device. The controls below will report the unsupported result." /> : null}
       <Type variant="bodySm" tone="secondary">Android asks for screen/app consent each time. Silent recording, up to 10 minutes. Secure windows stay protected.</Type>
       <ResultNotice result={runtime.capture?.message} />
       <Button label="Take screenshot" disabled={runtime.capture?.active} onPress={() => perform(() => gamingNative.capture('screenshot'))} />
@@ -82,6 +100,8 @@ export default function GamingToolsScreen({ navigation }) {
       </View>)}
     </Card>
     <Card style={{ gap: 12 }}><Type variant="h2">Game utilities</Type>
+      <Button label="Process Manager (Stop background apps)" variant="ghost" onPress={() => navigation.navigate('ProcessManager')} />
+      <Button label="Startup Manager (Auto-start control)" variant="ghost" onPress={() => navigation.navigate('StartupManager')} />
       <Button label="Display & brightness" variant="ghost" onPress={() => perform(() => gamingNative.openSettings('display'))} />
       <Button label="Network Intelligence" variant="ghost" onPress={() => navigation.navigate('Network')} />
       <Button label="Macro Studio" variant="ghost" onPress={() => navigation.navigate('MacroStudio')} />

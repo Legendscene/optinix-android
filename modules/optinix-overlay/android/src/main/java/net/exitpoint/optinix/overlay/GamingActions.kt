@@ -20,8 +20,15 @@ object GamingActions {
       "storage" -> Intent(Settings.ACTION_INTERNAL_STORAGE_SETTINGS)
       "battery" -> Intent(Settings.ACTION_BATTERY_SAVER_SETTINGS)
       "network" -> Intent(Settings.ACTION_WIRELESS_SETTINGS)
+      "network-settings" -> Intent(Settings.ACTION_WIRELESS_SETTINGS)
+      "appmgmt" -> Intent(Settings.ACTION_APPLICATION_SETTINGS)
+      "write" -> Intent(Settings.ACTION_MANAGE_WRITE_SETTINGS, Uri.parse("package:${context.packageName}"))
+      "processes" -> Intent(Intent.ACTION_VIEW, Uri.parse("optinix://processes")).setPackage(context.packageName)
+      "startup" -> Intent(Intent.ACTION_VIEW, Uri.parse("optinix://startup")).setPackage(context.packageName)
+      "macros" -> Intent(Intent.ACTION_VIEW, Uri.parse("optinix://macros")).setPackage(context.packageName)
       "notifications" -> if (Build.VERSION.SDK_INT >= 26) Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).putExtra(Settings.EXTRA_APP_PACKAGE, context.packageName) else Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:${context.packageName}"))
       "app" -> Intent(Intent.ACTION_VIEW, Uri.parse("optinix://games")).setPackage(context.packageName)
+      "hud-settings" -> Intent(Intent.ACTION_VIEW, Uri.parse("optinix://settings")).setPackage(context.packageName)
       else -> null
     } ?: return result(false, "No supported settings screen for this action.", "unsupported")
     return try {

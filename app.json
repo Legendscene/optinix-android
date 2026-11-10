@@ -6,13 +6,15 @@
     "orientation": "portrait",
     "scheme": "optinix",
     "userInterfaceStyle": "dark",
-    "backgroundColor": "#070B12",
-    "primaryColor": "#00E5CC",
+    "backgroundColor": "#0a0a0a",
+    "primaryColor": "#ffffff",
+    "icon": "./assets/icon.png",
     "newArchEnabled": true,
     "assetBundlePatterns": ["**/*"],
     "splash": {
+      "image": "./assets/splash.png",
       "resizeMode": "contain",
-      "backgroundColor": "#070B12"
+      "backgroundColor": "#0a0a0a"
     },
     "ios": {
       "supportsTablet": false,
@@ -21,7 +23,11 @@
     "android": {
       "package": "net.exitpoint.optinix",
       "versionCode": 1,
-      "backgroundColor": "#070B12",
+      "backgroundColor": "#0a0a0a",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#000000"
+      },
       "predictiveBackGestureEnabled": false,
       "blockedPermissions": [
         "android.permission.QUERY_ALL_PACKAGES",
@@ -51,21 +57,24 @@
     },
     "plugins": [
       "./plugins/withOptinixAndroid",
+      [
+        "react-native-google-mobile-ads",
+        {
+          "androidAppId": "ca-app-pub-3940256099942544~3347511713",
+          "optimizeInitialization": true,
+          "optimizeAdLoading": true
+        }
+      ],
       "expo-dev-client",
       "expo-font",
       [
         "expo-splash-screen",
         {
-          "backgroundColor": "#070B12",
+          "image": "./assets/splash.png",
+          "backgroundColor": "#0a0a0a",
           "resizeMode": "contain"
         }
       ]
-    ],
-    "extra": {
-      "optinix": {
-        "apiPort": 5420,
-        "releaseChannel": "dev"
-      }
-    }
+    ]
   }
 }

@@ -4,6 +4,7 @@ import Svg, { Defs, LinearGradient as SvgGradient, Path, Stop } from 'react-nati
 import { LinearGradient } from 'expo-linear-gradient'
 import appsNative from '../../native/apps'
 import { useTheme } from '../../theme/ThemeProvider'
+import { GRADIENTS } from '../../lib/designTokens'
 import { Type } from '../ui/Type'
 
 const icons = new Map()
@@ -35,7 +36,9 @@ export function GameArtwork({ game, children }) {
   const theme = useTheme()
   return (
     <View style={{ borderRadius: theme.radius['3xl'], overflow: 'hidden', borderWidth: 1, borderColor: theme.colors.border.light, backgroundColor: theme.colors.bg[1] }}>
-      <LinearGradient colors={theme.isDark ? ['#14262e', '#102127', '#0b0d12'] : ['#d5f4ed', '#eaf6f5', '#ffffff']} style={StyleSheet.absoluteFill} />
+      {/* Ink-only gradient ramp from tokens — the legacy teal artwork
+          colors predate the 2026-11-04 monochrome reset. */}
+      <LinearGradient colors={theme.isDark ? GRADIENTS.dark.hero : GRADIENTS.light.hero} style={StyleSheet.absoluteFill} />
       <Svg pointerEvents="none" width="100%" height="100%" viewBox="0 0 400 300" preserveAspectRatio="xMidYMid slice" style={StyleSheet.absoluteFill}>
         <Defs><SvgGradient id="cartridge" x1="0" y1="0" x2="1" y2="1"><Stop offset="0" stopColor={theme.accent.color} stopOpacity="0.45" /><Stop offset="1" stopColor={theme.colors.semantic.violet} stopOpacity="0.05" /></SvgGradient></Defs>
         <Path d="M210 -80 L470 70 L340 285 L90 140 Z" fill="url(#cartridge)" />

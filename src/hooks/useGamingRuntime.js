@@ -2,6 +2,7 @@ import { useCallback, useState } from 'react'
 import { AppState } from 'react-native'
 import { useFocusEffect } from '@react-navigation/native'
 import gamingNative from '../native/gaming'
+import adManager from '../services/adManager'
 
 export function useGamingRuntime() {
   const [runtime, setRuntime] = useState({ running: false, session: null, macro: null, capture: null })
@@ -10,6 +11,7 @@ export function useGamingRuntime() {
     const [next, access] = await Promise.all([gamingNative.getRuntime(), gamingNative.getCapabilities()])
     setRuntime(next)
     setCapabilities(access)
+    adManager.setGamingActive(Boolean(next?.running))
   }, [])
   useFocusEffect(useCallback(() => {
     let alive = true
@@ -23,6 +25,7 @@ export function useGamingRuntime() {
       if (alive) {
         setRuntime(next)
         setCapabilities(access)
+        adManager.setGamingActive(Boolean(next?.running))
         timer = setTimeout(sample, 2000)
       }
     }

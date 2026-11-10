@@ -8,6 +8,10 @@ version = '1.0.0'
 
 android {
   namespace "net.exitpoint.optinix.device"
+  lint {
+    abortOnError true
+    fatal 'NewApi', 'InlinedApi'
+  }
   defaultConfig {
     versionCode 1
     versionName '1.0.0'

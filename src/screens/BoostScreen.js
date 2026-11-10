@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react'
 import { StyleSheet, View } from 'react-native'
-import { useFocusEffect } from '@react-navigation/native'
+import { useFocusEffect, useNavigation } from '@react-navigation/native'
 
 import { Badge } from '../components/ui/Badge'
 import { Button } from '../components/ui/Button'
@@ -25,6 +25,7 @@ const ENGINE_IDS = ['memory-boost', 'cache-clean', 'game-boost', 'battery-audit'
 export default function BoostScreen() {
   const theme = useTheme()
   const { preferences } = usePreferences()
+  const navigation = useNavigation()
   const permissions = usePermissions()
   const { run, runningId, results } = useEngineRun()
   const [runs, setRuns] = useState([])
@@ -52,7 +53,6 @@ export default function BoostScreen() {
     if (cache?.execution?.freedBytes != null) {
       parts.push(`${formatBytes(cache.execution.freedBytes)} cleared`)
     }
-    if (memory?.execution?.killed != null) parts.push(`${memory.execution.killed} apps closed`)
     setSweepNote(parts.length > 0 ? parts.join(' · ') : 'Finished without a measurable change')
   }
 
@@ -102,6 +102,15 @@ export default function BoostScreen() {
       ) : null}
 
       <Card style={{ gap: 12 }}><Type variant="h3">Storage & battery controls</Type><Type variant="bodySm" tone="tertiary">Use Android’s storage manager to locate large files and unused content. Changes remain under your control.</Type><Button label="Open storage manager" variant="ghost" onPress={async () => { const result = await gamingNative.openSettings('storage'); setSweepNote(result.message) }} /><Button label="Battery saver settings" variant="ghost" onPress={async () => { const result = await gamingNative.openSettings('battery'); setSweepNote(result.message) }} /></Card>
+
+      <Card style={{ gap: 10 }}>
+        <Type variant="h3">Background apps & startup</Type>
+        <Type variant="bodySm" tone="tertiary">
+          Review recently active apps and change background behaviour using the system controls Android actually provides — no simulated process kills, no fake auto-start switches.
+        </Type>
+        <Button label="Process Manager" onPress={() => navigation.navigate('ProcessManager')} />
+        <Button label="Startup Manager" variant="ghost" onPress={() => navigation.navigate('StartupManager')} />
+      </Card>
 
       <View style={{ gap: theme.density.gap }}>
         {ENGINE_IDS.map((id) => {

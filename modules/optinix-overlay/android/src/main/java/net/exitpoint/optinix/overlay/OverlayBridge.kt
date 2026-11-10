@@ -4,7 +4,7 @@ object OverlayBridge {
   @Volatile
   var error: String? = null
   @Volatile
-  var accent: String = "#14B8A6"
+  var accent: String = "#ffffff"
 
   @Volatile
   var opacity: Double = 0.92

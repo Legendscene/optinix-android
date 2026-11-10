@@ -239,11 +239,11 @@ class OptinixDeviceModule : Module() {
     }
 
     val power = context().getSystemService(Context.POWER_SERVICE) as? PowerManager
-    val status = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+    val status = try { if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
       power?.currentThermalStatus ?: -1
     } else {
       -1
-    }
+    } } catch (_: Exception) { -1 }
 
     return mapOf(
       "celsius" to hottest?.let { round1(it) },

@@ -2,6 +2,7 @@ import { useCallback, useRef, useState } from 'react'
 
 import { runEngine } from '../engines'
 import { appendRun } from '../lib/runHistory'
+import adManager from '../services/adManager'
 
 export function useEngineRun() {
   const [runningId, setRunningId] = useState(null)
@@ -12,6 +13,7 @@ export function useEngineRun() {
     if (busy.current) return null
     busy.current = true
     setRunningId(id)
+    adManager.setOptimizing(true)
     try {
       const result = await runEngine(id, options)
       setResults((prev) => ({ ...prev, [id]: result }))
@@ -26,6 +28,7 @@ export function useEngineRun() {
     } finally {
       busy.current = false
       setRunningId(null)
+      adManager.setOptimizing(false)
     }
   }, [])
 

@@ -11,6 +11,11 @@ import GamingToolsScreen from '../screens/GamingToolsScreen'
 import MacroStudioScreen from '../screens/MacroStudioScreen'
 import MacroEditorScreen from '../screens/MacroEditorScreen'
 import NetworkScreen from '../screens/NetworkScreen'
+import ProcessManagerScreen from '../screens/ProcessManagerScreen'
+import StartupManagerScreen from '../screens/StartupManagerScreen'
+import DeviceCheckScreen from '../screens/DeviceCheckScreen'
+import AuthScreen from '../screens/AuthScreen'
+import AccountScreen from '../screens/AccountScreen'
 
 const Stack = createNativeStackNavigator()
 
@@ -23,6 +28,11 @@ const MAIN_ROUTES = [
   ['MacroStudio', MacroStudioScreen],
   ['MacroEditor', MacroEditorScreen],
   ['Network', NetworkScreen],
+  ['ProcessManager', ProcessManagerScreen],
+  ['StartupManager', StartupManagerScreen],
+  ['DeviceCheck', DeviceCheckScreen],
+  ['Auth', AuthScreen],
+  ['Account', AccountScreen],
 ]
 
 const ANIMATION = (reducedMotion) => ({

@@ -14,7 +14,7 @@ export const STORAGE_KEY = 'optinix:prefs:v1'
 export const DEFAULT_PREFERENCES = Object.freeze({
   onboardingDone: false,
   mode: 'dark', // 'dark' | 'light'
-  accent: 'teal', // 'teal' | 'indigo' | 'amber' | 'rose'
+  accent: 'mono', // 'mono' (desktop default) | 'teal' | 'indigo' | 'amber' | 'rose'
   density: 'comfortable', // 'comfortable' | 'compact'
   motion: 'system', // 'system' | 'reduced' | 'full'
   haptics: true,
@@ -22,23 +22,39 @@ export const DEFAULT_PREFERENCES = Object.freeze({
   overlayEnabled: true,
   overlayOpacity: 0.94,
   overlaySize: 56,
-  overlayAccent: 'app', // 'app' (follow theme) | 'teal' | 'indigo' | 'amber' | 'rose'
+  overlayAccent: 'app', // 'app' (follow theme) | 'mono' | 'teal' | 'indigo' | 'amber' | 'rose'
   overlayShortcuts: ['profile', 'timer', 'network'],
   overlayAutoHide: true,
+  overlayAutoCollapse: '10', // 'never' | '5' | '10' | '20' — seconds before open HUD panels collapse
+  // Control-HUD visibility over games: 'edge' = slim edge handle, 'notification'
+  // = no handle, reopen via the notification's "Show game HUD" action,
+  // 'disabled' = stop the gaming service, timer and both HUD windows.
+  overlayVisibility: 'edge',
   autoDetectGames: false,
-  autoOptimizeOnLaunch: false,
   monitorIntervalMs: 5000,
   batteryConscious: true,
   macroEnabled: false,
   reminderMinutes: 0,
   retentionDays: 30,
   networkTarget: 'https://www.gstatic.com/generate_204',
+  // Separate FPS stats HUD (second overlay window). Game FPS itself is not
+  // measurable on Android; the HUD always renders it as honest "--".
+  fpsHudEnabled: false,
+  fpsHudMode: 'minimal', // 'minimal' | 'compact' | 'detailed'
+  fpsHudOpacity: 0.9,
+  fpsHudCorner: 'topLeft', // 'topLeft' | 'topRight' | 'bottomLeft' | 'bottomRight'
+  fpsHudScale: 1,
+  fpsHudMetrics: ['cpu', 'ram', 'temp', 'battery', 'refresh'], // visible in detailed mode
 })
 
 const ALLOWED = {
   mode: ['dark', 'light'],
-  accent: ['teal', 'indigo', 'amber', 'rose'],
-  overlayAccent: ['app', 'teal', 'indigo', 'amber', 'rose'],
+  accent: ['mono', 'teal', 'indigo', 'amber', 'rose'],
+  overlayAccent: ['app', 'mono', 'teal', 'indigo', 'amber', 'rose'],
+  overlayAutoCollapse: ['never', '5', '10', '20'],
+  overlayVisibility: ['edge', 'notification', 'disabled'],
+  fpsHudMode: ['minimal', 'compact', 'detailed'],
+  fpsHudCorner: ['topLeft', 'topRight', 'bottomLeft', 'bottomRight'],
   density: ['comfortable', 'compact'],
   motion: ['system', 'reduced', 'full'],
 }
@@ -62,6 +78,11 @@ export function sanitizePreferences(raw) {
   next.overlayShortcuts = Array.isArray(next.overlayShortcuts)
     ? [...new Set(next.overlayShortcuts.filter((key) => ['profile', 'dnd', 'screenshot', 'record', 'timer', 'network', 'macro'].includes(key)))].slice(0, 4)
     : [...DEFAULT_PREFERENCES.overlayShortcuts]
+  next.fpsHudOpacity = Math.max(0.4, Math.min(1, Number(next.fpsHudOpacity) || 0.9))
+  next.fpsHudScale = Math.max(0.7, Math.min(1.6, Number(next.fpsHudScale) || 1))
+  next.fpsHudMetrics = Array.isArray(next.fpsHudMetrics)
+    ? [...new Set(next.fpsHudMetrics.filter((key) => ['cpu', 'ram', 'temp', 'battery', 'refresh'].includes(key)))]
+    : [...DEFAULT_PREFERENCES.fpsHudMetrics]
   if (typeof next.networkTarget !== 'string' || !/^https:\/\/[^\s/@#]+(?:\/[^\s#]*)?$/.test(next.networkTarget) || next.networkTarget.length > 300) next.networkTarget = DEFAULT_PREFERENCES.networkTarget
   return next
 }

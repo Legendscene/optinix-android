@@ -1,11 +1,16 @@
 package net.exitpoint.optinix.apps
 
 import android.app.AppOpsManager
+import android.app.ActivityManager
+import android.app.NotificationManager
+import android.Manifest
 import android.app.usage.StorageStatsManager
 import android.app.usage.UsageEvents
 import android.app.usage.UsageStatsManager
+import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
+import android.content.pm.ActivityInfo
 import android.content.pm.ApplicationInfo
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
@@ -73,6 +78,10 @@ class OptinixAppsModule : Module() {
       openSettings(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:$packageName")))
     }
 
+    AsyncFunction("openAppManagementSettings") {
+      openSettings(Intent(Settings.ACTION_APPLICATION_SETTINGS))
+    }
+
     AsyncFunction("hasUsageAccess") {
       hasUsageAccess()
     }
@@ -100,13 +109,28 @@ class OptinixAppsModule : Module() {
     }
 
     AsyncFunction("getPermissionState") {
+      val lowRam = (context().getSystemService(Context.ACTIVITY_SERVICE) as? ActivityManager)?.isLowRamDevice == true
+      val restricted = Build.VERSION.SDK_INT == 29 && lowRam && !hasOverlayPermission()
+      val notifications = context().getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
       mapOf(
         "usageAccess" to hasUsageAccess(),
         "overlay" to hasOverlayPermission(),
+        "overlayRestricted" to restricted,
+        "overlayReason" to if (restricted) "Android 10 Go / low-memory builds can block overlay permission. If the switch is unavailable in Android Settings, floating HUDs are unsupported. In-app tools and session notifications still work." else null,
+        "notifications" to (notifications.areNotificationsEnabled() && (Build.VERSION.SDK_INT < 33 || context().checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED) && notifications.getNotificationChannel("optinix_gaming")?.importance != NotificationManager.IMPORTANCE_NONE),
         "batteryOptimizationExempt" to hasBatteryOptimizationExemption(),
         "packageName" to context().packageName
       )
     }
+
+    // Startup (auto-start) capability probe. Android itself has no auto-start
+    // page — vendors (Realme UI/ColorOS, MIUI, One UI, OxygenOS, vivo, ASUS,
+    // EMUI) hide per-app start managers in their own packages. "supported" is
+    // only true when one of the known managers is genuinely resolvable on
+    // THIS device; nothing is simulated.
+    AsyncFunction("getStartupSupport") { startupSupport() }
+
+    AsyncFunction("openAutoStartSettings") { openAutoStartSettings() }
   }
 
   private fun installedApps(includeSystem: Boolean): List<Map<String, Any?>> {
@@ -197,6 +221,7 @@ class OptinixAppsModule : Module() {
     }
     val event = UsageEvents.Event()
     var lastPackage: String? = null
+    var lastActivity: String? = null
     var lastStamp = 0L
     while (events.hasNextEvent()) {
       events.getNextEvent(event)
@@ -205,11 +230,14 @@ class OptinixAppsModule : Module() {
         if (event.timeStamp >= lastStamp) {
           lastStamp = event.timeStamp
           lastPackage = event.packageName
+          lastActivity = event.className
         }
-      } else if ((type == 2 || type == 23) && event.packageName == lastPackage && event.timeStamp >= lastStamp) {
+      } else if ((type == 2 || type == 23) && event.packageName == lastPackage && event.timeStamp >= lastStamp &&
+        (lastActivity == null || event.className == null || event.className == lastActivity)) {
         lastPackage = null
+        lastActivity = null
         lastStamp = event.timeStamp
-      }
+      } else if (type in listOf(15, 17, 26) && event.timeStamp >= lastStamp) { lastPackage = null; lastActivity = null; lastStamp = event.timeStamp }
     }
     val packageName = lastPackage ?: return null
     val info = try {
@@ -377,8 +405,7 @@ class OptinixAppsModule : Module() {
     return false
   }
 
-  private fun hasOverlayPermission(): Boolean =
-    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) Settings.canDrawOverlays(context()) else true
+  private fun hasOverlayPermission(): Boolean = try { Settings.canDrawOverlays(context()) } catch (_: Exception) { false }
 
   private fun hasBatteryOptimizationExemption(): Boolean {
     val power = context().getSystemService(Context.POWER_SERVICE) as? android.os.PowerManager
@@ -390,6 +417,64 @@ class OptinixAppsModule : Module() {
     }
   }
 
+  /** Capability scan: the first auto-start manager actually present on this
+   *  device wins; null means the vendor control is not supported here and
+   *  the UI must say so instead of pretending. After the class-name scan, an
+   *  action-based fallback catches OEM releases that reuse the manager app
+   *  under new activity names (seen on RMX3998 ColorOS: Phone Manager exposes
+   *  its app management via the oplus intent actions, no StartupAppListActivity). */
+  private fun resolveAutoStartManager(): ActivityInfo? {
+    val manager = packageManager()
+    for ((packageName, classes) in AUTO_START_CANDIDATES) {
+      for (className in classes) {
+        val activity = try {
+          manager.getActivityInfo(ComponentName(packageName, className), 0)
+        } catch (_: Exception) {
+          null
+        } ?: continue
+        if (canOpenManager(activity)) return activity
+      }
+    }
+    for (action in AUTO_START_ACTIONS) {
+      val activity = try {
+        manager.resolveActivity(Intent(action), PackageManager.MATCH_DEFAULT_ONLY)
+      } catch (_: Exception) {
+        null
+      }?.activityInfo ?: continue
+      if (canOpenManager(activity)) return activity
+    }
+    return null
+  }
+
+  private fun canOpenManager(activity: ActivityInfo): Boolean = activity.exported && activity.enabled && activity.applicationInfo.enabled &&
+    (activity.permission == null || context().checkSelfPermission(activity.permission) == PackageManager.PERMISSION_GRANTED)
+
+  private fun startupSupport(): Map<String, Any?> {
+    val activity = resolveAutoStartManager()
+    return mapOf(
+      "supported" to (activity != null),
+      "manufacturer" to Build.MANUFACTURER,
+      "managerLabel" to try { activity?.loadLabel(packageManager())?.toString() } catch (_: Exception) { activity?.packageName },
+      "directAutoStart" to (activity?.name?.let { name -> listOf("Startup", "AutoStart", "Autostart", "ChainLaunch", "BgStart").any { name.contains(it, ignoreCase = true) } } == true),
+      "packageName" to context().packageName
+    )
+  }
+
+  private fun openAutoStartSettings(): Map<String, Any?> {
+    val activity = resolveAutoStartManager()
+      ?: return mapOf(
+        "ok" to false,
+        "supported" to false,
+        "message" to "Startup control is not supported on this device. Use Settings → Apps → $APP_LABEL for battery and background options instead."
+      )
+    val opened = openSettings(Intent().setClassName(activity.packageName, activity.name))
+    val label = try { activity.loadLabel(packageManager()).toString() } catch (_: Exception) { "the vendor manager" }
+    return when {
+      opened -> mapOf("ok" to true, "supported" to true, "message" to "Opened $label. Check its battery or startup controls; available options vary by phone version.")
+      else -> mapOf("ok" to false, "supported" to true, "message" to "Android blocked opening $label. It may not be exported on this device version.")
+    }
+  }
+
   companion object {
     private const val MAX_APPS = 400
     private const val MAX_RECENT = 40
@@ -397,6 +482,68 @@ class OptinixAppsModule : Module() {
     private const val MAX_BOOST = 80
     private const val FOREGROUND_LOOKBACK_MS = 10 * 60 * 1000L
     private const val EVENT_MOVE_TO_FOREGROUND = 1
+    /** The app's own display name, used only for honest fallback copy. */
+    private const val APP_LABEL = "Optinix"
+
+    /** Known vendor auto-start managers. Each candidate is resolved via
+     *  getActivityInfo() at run time — visibility-gated on Android 11+, so a
+     *  package that does not exist (or is hidden) throws and we move on. */
+    private val AUTO_START_CANDIDATES = listOf(
+      // Realme UI / ColorOS (the current test device is Realme RMX3998)
+      "com.coloros.safecenter" to listOf(
+        "com.coloros.safecenter.permission.startup.StartupAppListActivity",
+        "com.coloros.safecenter.startup.StartupAppListActivity"
+      ),
+      "com.coloros.phonemanager" to listOf(
+        "com.coloros.phonemanager.activity.StartupAppListActivity",
+        // Current ColorOS/Realme UI releases: the auto-start controls live
+        // inside Phone Manager's app management (no StartupAppListActivity).
+        "com.oplus.phonemanager.appmanager.AppManagerActivity",
+      ),
+      // legacy OPPO
+      "com.oppo.safe" to listOf(
+        "com.oppo.safe.permission.startup.StartupAppListActivity"
+      ),
+      // MIUI / HyperOS
+      "com.miui.securitycenter" to listOf(
+        "com.miui.permcenter.autostart.AutoStartManagementActivity"
+      ),
+      // Samsung One UI (Device care battery page)
+      "com.samsung.android.sm" to listOf(
+        "com.samsung.android.sm.ui.battery.BatteryActivity"
+      ),
+      "com.samsung.android.lool" to listOf(
+        "com.samsung.android.sm.ui.battery.BatteryActivity"
+      ),
+      // OxygenOS
+      "com.oneplus.security" to listOf(
+        "com.oneplus.security.chainlaunchs.ChainLaunchAppListActivity"
+      ),
+      // vivo / iQOO
+      "com.iqoo.secure" to listOf(
+        "com.iqoo.secure.ui.phoneoptimize.BgStartUpManager"
+      ),
+      "com.vivo.permissionmanager" to listOf(
+        "com.vivo.permissionmanager.activity.BgStartUpManagerActivity"
+      ),
+      // ASUS
+      "com.asus.mobilemanager" to listOf(
+        "com.asus.mobilemanager.entryfunction.EntryActivity"
+      ),
+      // EMUI / HarmonyOS
+      "com.huawei.systemmanager" to listOf(
+        "com.huawei.systemmanager.startupmgr.ui.StartupNormalAppListActivity"
+      )
+    )
+
+    /** Packages may hide the manager behind renamed activities; these intent
+     *  actions still resolve on the OEM's own app (verified in the RMX3998
+     *  Activity Resolver Table for com.coloros.phonemanager). */
+    private val AUTO_START_ACTIONS = listOf(
+      "oplus.intent.action.APP_MANAGER_ACTIVITY",
+      "oplus.intent.action.PHONE_MANAGER_MAIN_ACTIVITY",
+      "com.coloros.safecenter.SecureSafeMainActivity"
+    )
 
     private val GAME_HINTS = listOf(
       "game", "gameloft", "supercell", "tencent", "garena", "krafton",

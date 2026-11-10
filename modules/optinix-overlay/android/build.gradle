@@ -15,6 +15,7 @@ android {
   namespace "net.exitpoint.optinix.overlay"
   lint {
     abortOnError true
+    fatal 'NewApi', 'InlinedApi'
   }
   defaultConfig {
     versionCode 1

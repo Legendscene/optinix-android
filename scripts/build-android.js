@@ -25,11 +25,18 @@ try {
   env.OPTINIX_SOURCE_ROOT = source
   env.OPTINIX_BUILD_ROOT = root
   const debug = process.argv.includes('--debug')
+  const architectures = (process.env.OPTINIX_ANDROID_ABIS || (debug ? 'arm64-v8a' : 'arm64-v8a,armeabi-v7a')).split(',').map((abi) => abi.trim())
+  if (!architectures.length || architectures.some((abi) => !['arm64-v8a', 'armeabi-v7a', 'x86', 'x86_64'].includes(abi))) throw new Error('OPTINIX_ANDROID_ABIS contains an unsupported Android ABI.')
   const task = `:app:assemble${debug ? 'Debug' : 'Release'}`
-  const verification = process.argv.includes('--verify-native') ? [':optinix-overlay:testDebugUnitTest', ':optinix-overlay:lintDebug'] : []
-  const args = [...verification, task, '-PreactNativeArchitectures=arm64-v8a', '--console=plain', '--max-workers=2', '--no-daemon']
+  const verification = process.argv.includes('--verify-native') ? [':optinix-overlay:testDebugUnitTest', ':optinix-device:lintDebug', ':optinix-apps:lintDebug', ':optinix-overlay:lintDebug'] : []
+  const args = [...verification, task, `-PreactNativeArchitectures=${[...new Set(architectures)].join(',')}`, '--console=plain', '--max-workers=2', '--no-daemon']
+  // Invoke gradlew by absolute path: some Windows setups export
+  // NoDefaultCurrentDirectoryInExePath=1, which makes `cmd /c gradlew.bat` fail with
+  // "'gradlew.bat' is not recognized" even when the file is in the working directory.
+  const gradlew = path.join(root, 'android', 'gradlew.bat')
+  const gradlewCommand = /\s/.test(gradlew) ? `"${gradlew}"` : gradlew
   const built = windows
-    ? spawnSync('cmd.exe', ['/d', '/c', 'gradlew.bat', ...args], { cwd: path.join(root, 'android'), env, stdio: 'inherit' })
+    ? spawnSync('cmd.exe', ['/d', '/c', gradlewCommand, ...args], { cwd: path.join(root, 'android'), env, stdio: 'inherit' })
     : spawnSync('./gradlew', args, { cwd: path.join(root, 'android'), env, stdio: 'inherit' })
   exitCode = built.status ?? 1
   if (built.error) throw built.error

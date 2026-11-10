@@ -29,12 +29,12 @@ class OverlaySparkline(context: Context) : View(context) {
     strokeWidth = dp(1.2f)
     strokeCap = Paint.Cap.ROUND
     strokeJoin = Paint.Join.ROUND
-    color = Color.parseColor("#5b657a")
+    color = Color.parseColor("#8a8a8a")
   }
   private val gridPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
     style = Paint.Style.STROKE
     strokeWidth = dp(0.7f)
-    color = Color.parseColor("#1c2431")
+    color = Color.parseColor("#2c2c2c")
   }
   private val dotPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
     style = Paint.Style.FILL

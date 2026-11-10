@@ -7,6 +7,10 @@ import appsNative from '../native/apps'
 const INITIAL = {
   usageAccess: false,
   overlay: false,
+  overlayRestricted: false,
+  overlayReason: null,
+  notifications: null,
+  error: null,
   batteryOptimizationExempt: false,
   packageName: null,
 }
@@ -38,7 +42,8 @@ export function usePermissions() {
   }, [])
 
   const grantOverlay = useCallback(async () => {
-    await appsNative.openOverlaySettings()
+    const opened = await appsNative.openOverlaySettings()
+    if (!opened) setState((current) => ({ ...current, error: current.overlayReason ?? 'This phone does not expose the overlay-permission page. Floating HUDs are unavailable until Android grants access.' }))
   }, [])
 
   const grantBattery = useCallback(async () => {

@@ -34,9 +34,6 @@ export const appsNative = {
   getStorageStats(packageNames = []) {
     return safeCall('getStorageStats', [], packageNames)
   },
-  boost(packageNames = []) {
-    return safeCall('boost', { ok: false, supported: false, requested: 0, killed: null }, packageNames)
-  },
   clearOwnCache() {
     return safeCall('clearOwnCache', { ok: false, supported: false, freedBytes: null, message: 'Cache cleaning is unavailable in this build.' })
   },
@@ -45,6 +42,9 @@ export const appsNative = {
   },
   openAppInfo(packageName) {
     return safeCall('openAppInfo', false, packageName)
+  },
+  openAppManagementSettings() {
+    return safeCall('openAppManagementSettings', false)
   },
   hasUsageAccess() {
     return safeCall('hasUsageAccess', false)
@@ -71,6 +71,14 @@ export const appsNative = {
       batteryOptimizationExempt: false,
       packageName: null,
     })
+  },
+  // Startup (auto-start) capability: supported is true only when a vendor
+  // auto-start manager actually resolved on this device.
+  getStartupSupport() {
+    return safeCall('getStartupSupport', { supported: false, manufacturer: null, managerLabel: null, packageName: null })
+  },
+  openAutoStartSettings() {
+    return safeCall('openAutoStartSettings', { ok: false, supported: false, message: 'Startup controls are unavailable in this build.' })
   },
 }
 

@@ -6,16 +6,23 @@ import { PROFILE_PRESETS, sanitizeProfile } from '../lib/gameProfiles'
 import { ACCENTS } from '../lib/designTokens'
 
 export async function requestSessionNotifications() {
-  if (Platform.OS !== 'android' || Number(Platform.Version) < 33) return true
-  const permission = PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS
-  if (await PermissionsAndroid.check(permission)) return true
-  return await PermissionsAndroid.request(permission) === PermissionsAndroid.RESULTS.GRANTED
+  if (Platform.OS !== 'android') return false
+  if (Number(Platform.Version) >= 33) {
+    const permission = PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS
+    if (!await PermissionsAndroid.check(permission) && await PermissionsAndroid.request(permission) !== PermissionsAndroid.RESULTS.GRANTED) return false
+  }
+  const capabilities = await gamingNative.getCapabilities()
+  return capabilities.notifications === true
 }
 
-/** The HUD panel is always dark, so a custom HUD accent uses the dark-variant hex. */
+/** The HUD panel is always dark, so the accent always resolves through the
+ *  dark-variant set (a light-mode mono/black accent would vanish on it).
+ *  `overlayAccent: 'app'` follows the app's chosen accent the same way. */
 export function hudAccentHex(preferences, theme) {
   const custom = preferences.overlayAccent
-  if (custom && custom !== 'app' && ACCENTS[custom]) return ACCENTS[custom].dark.accent
+  const accentId = custom && custom !== 'app' ? custom : preferences.accent
+  const set = ACCENTS[accentId]
+  if (set) return set.dark.accent
   return theme.accent.color
 }
 
@@ -31,6 +38,21 @@ export function gamingConfig(preferences, theme, reducedMotion) {
     reducedMotion,
     shortcuts: preferences.overlayShortcuts ?? ['profile', 'timer', 'network'],
     autoHide: preferences.overlayAutoHide !== false,
+    // seconds before open HUD panels collapse back to the notch; 0 disables
+    autoCollapseSeconds:
+      preferences.overlayAutoCollapse === 'never'
+        ? 0
+        : Number(preferences.overlayAutoCollapse) || 10,
+    // Visibility mode for the collapsed control HUD over games ('edge' handle,
+    // 'notification' reopen entry, 'disabled'); the module clamps the enum.
+    hudVisibility: preferences.overlayVisibility ?? 'edge',
+    // Separate FPS stats HUD (second, fully pass-through window).
+    fpsHudEnabled: preferences.fpsHudEnabled === true,
+    fpsHudMode: preferences.fpsHudMode ?? 'minimal',
+    fpsHudOpacity: preferences.fpsHudOpacity ?? 0.9,
+    fpsHudCorner: preferences.fpsHudCorner ?? 'topLeft',
+    fpsHudScale: preferences.fpsHudScale ?? 1,
+    fpsHudMetrics: preferences.fpsHudMetrics ?? ['cpu', 'ram', 'temp', 'battery', 'refresh'],
     notifications: preferences.notifications,
     macroEnabled: preferences.macroEnabled === true,
     autoDetectGames: preferences.autoDetectGames === true,
@@ -47,9 +69,11 @@ export async function launchGame(game, config) {
   if (!game?.installed) return { ok: false, message: 'This game is not currently installed or visible. Refresh the library.' }
   const savedProfile = sanitizeProfile(game.profile)
   const profile = { ...savedProfile, overlay: savedProfile.overlay && config.overlayEnabled !== false }
-  if (config.notifications) await requestSessionNotifications()
+  if (config.hudVisibility !== 'disabled' && (config.notifications || config.hudVisibility === 'notification')) await requestSessionNotifications()
   await gamingNative.configure(config)
-  const session = await gamingNative.startSession({ ...config, gamePackage: game.packageName, gameLabel: game.label, profile, showOverlay: profile.overlay })
+  const session = config.hudVisibility === 'disabled'
+    ? { ok: false, message: 'Gaming service is disabled: no HUD, timer or session tools are running.' }
+    : await gamingNative.startSession({ ...config, gamePackage: game.packageName, gameLabel: game.label, profile, showOverlay: profile.overlay })
   const opened = await appsNative.openApp(game.packageName)
   if (!opened) {
     if (session.ok) await gamingNative.endSession()

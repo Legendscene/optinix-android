@@ -64,7 +64,9 @@ export const gameBoostEngine = createEngine({
     const [permissions, overlayState] = await Promise.all([appsNative.getPermissionState(), overlayNative.getState()])
     return { usageAccess: permissions?.usageAccess ?? false, overlayPermission: overlayState?.hasPermission ?? false }
   },
-  execute: async ({ inspection, startOverlay = false, accent = '#2ee6cf' }) => {
+  /** Mono dark ink fallback; the HUD panel is always dark and BoostScreen
+   *  passes the live theme accent, so this only covers direct calls. */
+  execute: async ({ inspection, startOverlay = false, accent = '#ffffff' }) => {
     if (!startOverlay) return { ok: false, supported: true, message: 'Enable the optional HUD in Settings, or configure a game profile in Game Space.', note: 'No hardware or background processes changed.' }
     if (!inspection?.overlayPermission) return { ok: false, supported: true, reason: 'permission', message: 'Enable display-over-apps access in Gaming tools to start the HUD.' }
     const started = await overlayNative.start({ accent })

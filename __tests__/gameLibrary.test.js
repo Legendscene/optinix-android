@@ -1,5 +1,12 @@
-import { mergeDiscovered, sanitizeLibrary, selectGames } from '../src/store/gameLibrary'
+import { discoverGames, gameLibrary, mergeDiscovered, sanitizeLibrary, selectGames } from '../src/store/gameLibrary'
 import { sanitizeProfile } from '../src/lib/gameProfiles'
+import appsNative from '../src/native/apps'
+
+jest.mock('../src/native/apps', () => ({
+  __esModule: true,
+  isAppsNativeAvailable: true,
+  default: { isAvailable: true, getInstalledApps: jest.fn() },
+}))
 
 describe('Game Space persistence contract', () => {
   const saved = [{ packageName: 'com.example.game', label: 'Game', favorite: true, manual: true, lastLaunchedAt: 42, profile: { id: 'custom', dnd: true, overlay: false, intervalMs: 10000 } }]
@@ -21,6 +28,12 @@ describe('Game Space persistence contract', () => {
     const list = sanitizeLibrary({ games: [...saved, { packageName: 'com.other.game', label: 'Another', favorite: false }] }).games
     expect(selectGames(list, { search: 'com.example', filter: 'favorites' })).toHaveLength(1)
     expect(selectGames(list, { sort: 'name' })[0].label).toBe('Another')
+  })
+  it('leaves the library intact when the device reports no launchable apps', async () => {
+    appsNative.getInstalledApps.mockResolvedValueOnce([])
+    const before = JSON.stringify(gameLibrary.getState().data)
+    await expect(discoverGames()).rejects.toThrow(/no launchable apps/i)
+    expect(JSON.stringify(gameLibrary.getState().data)).toBe(before)
   })
   it('retains explicit false controls and rejects unsupported profile knobs', () => {
     const profile = sanitizeProfile({ id: 'competitive', dnd: false, overlay: false, intervalMs: 1, cpuClock: 9999 })

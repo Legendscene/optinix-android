@@ -42,6 +42,12 @@ export const useGameLibrary = gameLibrary.useStore
 export async function discoverGames() {
   if (!appsNative.isAvailable) throw new Error('Game discovery needs the Optinix Android build.')
   const launchable = await appsNative.getInstalledApps(true)
+  // A failed or empty native query is not evidence that every game was uninstalled:
+  // mergeDiscovered would flip the whole library to "Unavailable". Leave it untouched
+  // and report the failure instead (the native bridge returns [] on any error).
+  if (!Array.isArray(launchable) || launchable.length === 0) {
+    throw new Error('Android returned no launchable apps, so your library was left unchanged. Try Refresh again.')
+  }
   await gameLibrary.change((data) => ({ ...data, discoveryEnabled: true, games: mergeDiscovered(data.games, launchable.filter((app) => !data.excluded.includes(app.packageName))) }))
   return launchable
 }

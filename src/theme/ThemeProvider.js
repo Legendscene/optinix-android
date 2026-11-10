@@ -3,9 +3,7 @@
  * current mode/accent/density, exactly like the desktop app flips
  * `data-theme` / `data-accent` / `data-density` on <html>.
  *
- * Everything a component needs is on one object from `useTheme()`, and
- * `useThemedStyles` memoises StyleSheet.create output per theme identity so
- * screens never re-create styles on unrelated renders.
+ * Everything a component needs is on one object from `useTheme()`.
  */
 import React, {
   createContext,
@@ -36,6 +34,10 @@ import {
   savePreferences,
   sanitizePreferences,
 } from '../store/preferences'
+import {
+  notifyPreferencesChanged,
+  registerPreferencesBridge,
+} from './syncHub'
 
 const ThemeContext = createContext(null)
 
@@ -43,7 +45,7 @@ const ThemeContext = createContext(null)
 export function buildTheme(prefs) {
   const isDark = prefs.mode !== 'light'
   const base = isDark ? DARK : LIGHT
-  const accentSet = (ACCENTS[prefs.accent] || ACCENTS.teal)[isDark ? 'dark' : 'light']
+  const accentSet = (ACCENTS[prefs.accent] || ACCENTS.mono)[isDark ? 'dark' : 'light']
   const density = DENSITY[prefs.density] || DENSITY.comfortable
   const gradients = GRADIENTS[isDark ? 'dark' : 'light']
 
@@ -96,6 +98,8 @@ export function ThemeProvider({ children, initialPreferences }) {
   const [saveError, setSaveError] = useState(null)
   const writes = useRef(Promise.resolve())
   const mounted = useRef(true)
+  const preferencesRef = useRef(preferences)
+  const applyResolvers = useRef([])
 
   useEffect(() => {
     mounted.current = true
@@ -111,6 +115,35 @@ export function ThemeProvider({ children, initialPreferences }) {
       mounted.current = false
     }
   }, [initialPreferences])
+
+  // Cloud sync bridge: read current values, hear committed changes, and let
+  // the cloud engine apply a stored-subset WITHOUT triggering a save loop
+  // (the applied subset persist exactly like a user edit — the engine then
+  // marks its own handshake so it never re-uploads what it just restored).
+  useEffect(() => {
+    const unregister = registerPreferencesBridge({
+      read: () => preferencesRef.current,
+      ready: () => hydrated && mounted.current,
+      apply: (cloudSubset) => new Promise((resolve) => {
+        const current = preferencesRef.current
+        const next = sanitizePreferences({ ...current, ...(cloudSubset ?? {}) })
+        if (JSON.stringify(next) === JSON.stringify(current)) {
+          resolve(Boolean(hydrated)) // subset already matches; nothing to commit
+          return
+        }
+        applyResolvers.current.push(resolve)
+        setPreferences(next)
+      }),
+    })
+    return () => {
+      unregister()
+    }
+  }, [hydrated])
+
+  // Keep the ref in sync (read path uses it, never stale state closures).
+  useEffect(() => {
+    preferencesRef.current = preferences
+  }, [preferences])
 
   useEffect(() => {
     let active = true
@@ -141,6 +174,21 @@ export function ThemeProvider({ children, initialPreferences }) {
     if (!hydrated) return
     writes.current = writes.current.then(() => savePreferences(preferences)).then((ok) => {
       if (mounted.current) setSaveError(ok ? null : 'Preferences could not be saved. Check free device storage.')
+      // Cloud-applied subsets resolve only after their values persisted.
+      if (applyResolvers.current.length) {
+        const resolvers = applyResolvers.current
+        applyResolvers.current = []
+        resolvers.forEach((resolve) => {
+          try {
+            resolve(ok)
+          } catch {
+            /* keep flushing */
+          }
+        })
+      }
+      // Non-React consumers (the cloud sync engine) hear every committed
+      // change here — sanitized values only, after persistence succeeded.
+      notifyPreferencesChanged(preferences)
     })
   }, [preferences, hydrated])
 
@@ -172,15 +220,6 @@ export function usePreferences() {
     throw new Error('usePreferences must be used inside <ThemeProvider>')
   }
   return ctx
-}
-
-/**
- * Styles factory memoised against the live theme. Use:
- *   const styles = useThemedStyles(makeStyles)
- */
-export function useThemedStyles(factory) {
-  const theme = useTheme()
-  return useMemo(() => factory(theme), [factory, theme])
 }
 
 export default ThemeProvider

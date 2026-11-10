@@ -4,7 +4,7 @@ const expoConfig = require('eslint-config-expo/flat')
 module.exports = defineConfig([
   expoConfig,
   {
-    ignores: ['node_modules/**', 'android/**', 'ios/**', 'coverage/**'],
+    ignores: ['node_modules/**', 'android/**', 'ios/**', 'coverage/**', 'supabase/**', 'dist/**'],
   },
   {
     rules: {

@@ -12,11 +12,12 @@ class CaptureConsentActivity : Activity() {
   private var requested = false
   override fun onCreate(savedInstanceState: Bundle?) {
     super.onCreate(savedInstanceState)
-    if (savedInstanceState != null) { requested = savedInstanceState.getBoolean("requested"); return }
+    requested = savedInstanceState?.getBoolean("requested") ?: false
+    if (requested) return
     val recording = intent.getStringExtra("mode") == "record"
     AlertDialog.Builder(this)
       .setTitle(if (recording) "Record your screen?" else "Take a screenshot?")
-      .setMessage("Android will ask which screen or app to capture. ${if (recording) "Video is silent, limited to 10 minutes, and can be stopped from the notification or Optinix." else "One image will be captured after you confirm."} Captures stay on this device. Secure content cannot be captured.")
+      .setMessage("Android will ask for screen-capture permission. ${if (recording) "Video is silent, limited to 10 minutes, and can be stopped from the notification or Optinix." else "One image will be captured after you confirm."} Captures stay on this device. Secure content cannot be captured.")
       .setPositiveButton("Continue") { _, _ ->
         requested = true
         try {

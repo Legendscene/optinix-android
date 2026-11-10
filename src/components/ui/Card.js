@@ -4,7 +4,22 @@ import { LinearGradient } from 'expo-linear-gradient'
 
 import { useTheme } from '../../theme/ThemeProvider'
 
-export function Card({ children, style, accent = false, padded = true, gradient = true, ...rest }) {
+/**
+ * Cards render instantly — no Reanimated `entering` animation. The 2026-11-07
+ * FadeInDown entrance froze on-device (RMX3998, Android 16): after tab
+ * switching / fast scrolling during app backgrounding, mounted cards were
+ * caught mid-entrance and stayed overlapping with blank gaps until a full
+ * app restart. Interaction-driven motion (button press scale, tab pill,
+ * CountUp) is unaffected; layout correctness wins over entrance motion.
+ */
+export function Card({
+  children,
+  style,
+  accent = false,
+  padded = true,
+  gradient = true,
+  ...rest
+}) {
   const theme = useTheme()
   const pad = theme.density.cardPad
   const colors = theme.gradients.card ?? (theme.isDark

@@ -4,8 +4,14 @@ import { Pressable, StyleSheet, View } from 'react-native'
 import { useTheme } from '../../theme/ThemeProvider'
 import { Type } from './Type'
 
-export function Row({ title, subtitle, value, right, left, onPress, style, dense = false }) {
+/** Compose one announcement for a compound row (title + subtitle + value). */
+export function rowAccessibilityLabel({ title, subtitle, value } = {}) {
+  return [title, subtitle, value].filter(Boolean).join('. ')
+}
+
+export function Row({ title, subtitle, value, right, left, onPress, style, dense = false, accessibilityLabel, accessibilityHint, accessibilityState }) {
   const theme = useTheme()
+  const resolvedLabel = accessibilityLabel ?? (onPress ? rowAccessibilityLabel({ title, subtitle, value }) : undefined)
   const content = (
     <View style={[styles.base, { paddingVertical: dense ? 9 : 12 }, style]}>
       {left ? <View style={{ marginRight: theme.spacing[3] }}>{left}</View> : null}
@@ -28,12 +34,22 @@ export function Row({ title, subtitle, value, right, left, onPress, style, dense
     </View>
   )
 
-  if (!onPress) return content
+  if (!onPress) {
+    if (!resolvedLabel && !accessibilityHint) return content
+    return (
+      <View accessible accessibilityLabel={resolvedLabel} accessibilityHint={accessibilityHint} accessibilityState={accessibilityState}>
+        {content}
+      </View>
+    )
+  }
 
   return (
     <Pressable
       onPress={onPress}
       accessibilityRole="button"
+      accessibilityLabel={resolvedLabel}
+      accessibilityHint={accessibilityHint}
+      accessibilityState={accessibilityState}
       style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}
     >
       {content}

@@ -1,7 +1,8 @@
-import React from 'react'
+import React, { useCallback, useEffect, useRef } from 'react'
 import { Pressable, StyleSheet, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import * as Haptics from 'expo-haptics'
+import Animated, { useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated'
 
 import { usePreferences, useTheme } from '../theme/ThemeProvider'
 import { Type } from '../components/ui/Type'
@@ -15,10 +16,45 @@ const LABELS = {
   Settings: 'Settings',
 }
 
+const PILL_SPRING = { damping: 26, stiffness: 300, mass: 0.8 }
+// Bar box: border 1px + horizontal padding 6px on each side.
+const BAR_INSET = 7
+
 export function TabBar({ state, navigation }) {
   const theme = useTheme()
   const insets = useSafeAreaInsets()
   const { preferences } = usePreferences()
+  const routes = state.routes
+  const pillX = useSharedValue(0)
+  const pillW = useSharedValue(0)
+  const barWidth = useRef(0)
+  const positioned = useRef(false)
+
+  const pillStyle = useAnimatedStyle(() => ({
+    left: pillX.value,
+    width: pillW.value,
+  }))
+
+  const movePill = useCallback((index, animate = true) => {
+    const inner = barWidth.current - BAR_INSET * 2
+    if (inner <= 0 || routes.length === 0) return
+    const itemWidth = inner / routes.length
+    const x = BAR_INSET + index * itemWidth
+    /* eslint-disable react-hooks/immutability -- Reanimated shared values are mutable by design */
+    if (!animate || preferences.reducedMotion) {
+      pillX.value = x
+      pillW.value = itemWidth
+      return
+    }
+    pillX.value = withSpring(x, PILL_SPRING)
+    pillW.value = withSpring(itemWidth, PILL_SPRING)
+    /* eslint-enable react-hooks/immutability */
+  }, [routes.length, preferences.reducedMotion, pillX, pillW])
+
+  useEffect(() => {
+    if (!positioned.current) return
+    movePill(state.index)
+  }, [state.index, movePill])
 
   return (
     <View
@@ -26,6 +62,13 @@ export function TabBar({ state, navigation }) {
       style={[styles.wrap, { bottom: Math.max(insets.bottom, 12) + 6 }]}
     >
       <View
+        onLayout={(event) => {
+          barWidth.current = event.nativeEvent.layout.width
+          if (!positioned.current) {
+            positioned.current = true
+            movePill(state.index, false)
+          }
+        }}
         style={[
           styles.bar,
           {
@@ -38,7 +81,15 @@ export function TabBar({ state, navigation }) {
           },
         ]}
       >
-        {state.routes.map((route, index) => {
+        <Animated.View
+          pointerEvents="none"
+          style={[
+            styles.pill,
+            pillStyle,
+            { backgroundColor: theme.accent.dim, borderRadius: theme.radius.md },
+          ]}
+        />
+        {routes.map((route, index) => {
           const focused = state.index === index
           const label = LABELS[route.name] ?? route.name
           const color = focused ? theme.accent.ink : theme.colors.text.tertiary
@@ -66,7 +117,6 @@ export function TabBar({ state, navigation }) {
                 styles.item,
                 {
                   borderRadius: theme.radius.md,
-                  backgroundColor: focused ? theme.accent.dim : 'transparent',
                   opacity: pressed ? 0.75 : 1,
                 },
               ]}
@@ -97,6 +147,7 @@ const styles = StyleSheet.create({
   bar: { flexDirection: 'row', borderWidth: 1 },
   item: { flex: 1, minHeight: 58, alignItems: 'center', justifyContent: 'center', paddingVertical: 8, position: 'relative' },
   activeLine: { position: 'absolute', top: -7, width: 24, height: 2, borderRadius: 2 },
+  pill: { position: 'absolute', top: 7, bottom: 7 },
 })
 
 export default TabBar

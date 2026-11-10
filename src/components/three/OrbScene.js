@@ -20,7 +20,8 @@ function fakeCanvas(gl) {
 
 export function OrbScene({
   size = 220,
-  accent = '#00e5cc',
+  /** Default = mono dark ink; DashboardScreen passes the live theme accent. */
+  accent = '#ffffff',
   health = null,
   active = false,
   reducedMotion = false,

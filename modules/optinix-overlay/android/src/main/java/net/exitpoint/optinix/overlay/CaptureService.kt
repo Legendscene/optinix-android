@@ -27,7 +27,6 @@ import android.os.IBinder
 import android.os.Looper
 import android.os.ParcelFileDescriptor
 import android.os.SystemClock
-import android.view.WindowManager
 import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.math.max
 
@@ -70,8 +69,7 @@ class CaptureService : Service() {
       projection = manager.getMediaProjection(Activity.RESULT_OK, data)
       projection!!.registerCallback(callback, handler)
       output = CaptureRepository(this).create(video)
-      val wm = getSystemService(Context.WINDOW_SERVICE) as WindowManager
-      val bounds = if (Build.VERSION.SDK_INT >= 30) wm.maximumWindowMetrics.bounds else android.graphics.Rect(0, 0, resources.displayMetrics.widthPixels, resources.displayMetrics.heightPixels)
+      val bounds = OverlaySupport.displayBounds(this)
       val factor = minOf(1.0, (if (video) 1280.0 else 1600.0) / max(bounds.width(), bounds.height()))
       val width = max(2, ((bounds.width() * factor).toInt() / 2) * 2)
       val height = max(2, ((bounds.height() * factor).toInt() / 2) * 2)

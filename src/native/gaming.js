@@ -19,7 +19,6 @@ export default {
   startSession: (config) => call('startSession', [config]),
   endSession: () => call('endSession'),
   timer: (action) => call('timerAction', [action]),
-  applyProfile: (profile) => call('applyProfile', [profile]),
   getSessions: () => call('getSessionHistory', [], []),
   clearSessions: () => call('clearSessionHistory'),
   setDnd: (enabled) => call('setDnd', [enabled]),
@@ -31,7 +30,12 @@ export default {
   deleteCapture: (id) => call('deleteCapture', [id]),
   startMacro: (macro) => call('startMacro', [macro]),
   stopMacro: () => call('stopMacro'),
+  // App-side hide/show switch for the control HUD (the overlay "hidden state").
+  setOverlayVisible: (visible) => call('setOverlayVisible', [visible]),
   diagnose: (config) => call('diagnoseNetwork', [config]),
   cancelDiagnostics: () => call('cancelDiagnostics'),
   resetPosition: () => call('resetOverlayPosition'),
+  // Handle side control (Settings → Handle side): Left/Right, both orientations.
+  setHandleSide: (side) => call('setHandleSide', [side]),
+  getHandleSide: () => call('getHandleSide', [], { portrait: 'left', landscape: 'left' }),
 }

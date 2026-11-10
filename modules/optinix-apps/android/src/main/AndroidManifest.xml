@@ -9,6 +9,21 @@
       <action android:name="android.intent.action.MAIN" />
       <category android:name="android.intent.category.LAUNCHER" />
     </intent>
+    <!-- Vendor auto-start managers probed by getStartupSupport/openAutoStartSettings.
+         Without package visibility these components resolve to not-found on
+         Android 11+ and the startup manager would incorrectly report
+         "not supported". -->
+    <package android:name="com.coloros.safecenter" />
+    <package android:name="com.coloros.phonemanager" />
+    <package android:name="com.oppo.safe" />
+    <package android:name="com.miui.securitycenter" />
+    <package android:name="com.samsung.android.sm" />
+    <package android:name="com.samsung.android.lool" />
+    <package android:name="com.oneplus.security" />
+    <package android:name="com.iqoo.secure" />
+    <package android:name="com.vivo.permissionmanager" />
+    <package android:name="com.asus.mobilemanager" />
+    <package android:name="com.huawei.systemmanager" />
   </queries>
 
 </manifest>

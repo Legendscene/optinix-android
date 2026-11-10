@@ -8,7 +8,7 @@ import android.os.Process
 
 class ForegroundGameReader(private val context: Context) {
   private var since = System.currentTimeMillis() - 300_000L
-  private var current: String? = null
+  private val state = ForegroundState()
 
   fun hasAccess(): Boolean = try {
     val ops = context.getSystemService(Context.APP_OPS_SERVICE) as AppOpsManager
@@ -16,22 +16,19 @@ class ForegroundGameReader(private val context: Context) {
   } catch (_: Exception) { false }
 
   fun read(): String? {
-    if (!hasAccess()) { current = null; return null }
+    if (!hasAccess()) { state.clear(); return null }
     return try {
       val now = System.currentTimeMillis()
+      if (now < since) { state.clear(); since = now - 300_000L }
       val usage = context.getSystemService(Context.USAGE_STATS_SERVICE) as UsageStatsManager
-      val events = usage.queryEvents(since, now)
+      val events = usage.queryEvents((since - 10_000L).coerceAtLeast(0L), now)
       val event = UsageEvents.Event()
       while (events.hasNextEvent()) {
         events.getNextEvent(event)
-        when (event.eventType) {
-          1 -> current = event.packageName
-          2, 23 -> if (current == event.packageName) current = null
-          15, 17 -> current = null
-        }
+        state.accept(event.eventType, event.packageName, event.className, event.timeStamp)
       }
       since = now
-      current
-    } catch (_: Exception) { current = null; null }
+      state.packageName
+    } catch (_: Exception) { state.clear(); null }
   }
 }

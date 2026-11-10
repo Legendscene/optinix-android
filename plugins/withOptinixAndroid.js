@@ -40,6 +40,9 @@ if (optinixAliasRoot && optinixRealRoot) {
   })
   config = withGradleProperties(config, (mod) => {
     const properties = {
+      'android.minSdkVersion': '29',
+      'android.targetSdkVersion': '36',
+      'android.compileSdkVersion': '37',
       'android.enableMinifyInReleaseBuilds': 'false',
       'android.cmakeVersion': '3.31.6',
       'expo.android.cmakeObjectPathMax': '200',
@@ -64,9 +67,36 @@ if (optinixAliasRoot && optinixRealRoot) {
     }
     return mod
   })
-  return withAndroidManifest(config, (mod) => {
+  // The AdMob library (2026-11-09) merges an EMPTY placeholder
+  // com.google.android.gms.ads.APPLICATION_ID from its own AndroidManifest when
+  // the app manifest has no real value, and Google's provider then terminates
+  // the process at launch ("Invalid application ID") — a crash observed on the
+  // device. Enforce the app-level meta-data here so any future prebuild or
+  // stale mirror always carries a valid ID (Google's public sample/test ID,
+  // matching app.json's react-native-google-mobile-ads plugin argument).
+  const ADMOB_APPLICATION_ID = 'ca-app-pub-3940256099942544~3347511713'
+  config = withAndroidManifest(config, (mod) => {
     const application = mod.modResults.manifest.application?.[0]
-    if (application) application.$['android:allowBackup'] = 'false'
+    if (!application) return mod
+    if (!Array.isArray(application['meta-data']) && !application['meta-data']) application['meta-data'] = []
+    const entries = application['meta-data'] ?? []
+    const ensure = (name, value) => {
+      const existing = entries.find((entry) => entry.$?.['android:name'] === name)
+      if (existing) {
+        existing.$['android:value'] = value
+        existing.$['tools:replace'] = 'android:value'
+      } else {
+        entries.push({
+          $: { 'android:name': name, 'android:value': value, 'tools:replace': 'android:value' },
+        })
+      }
+    }
+    ensure('com.google.android.gms.ads.APPLICATION_ID', ADMOB_APPLICATION_ID)
+    ensure('com.google.android.gms.ads.flag.OPTIMIZE_INITIALIZATION', 'true')
+    ensure('com.google.android.gms.ads.flag.OPTIMIZE_AD_LOADING', 'true')
+    application['meta-data'] = entries
+    application.$['android:allowBackup'] = 'false'
     return mod
   })
+  return config
 }

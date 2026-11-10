@@ -6,6 +6,9 @@ import { AlertBanner } from '../components/ui/AlertBanner'
 import { Badge } from '../components/ui/Badge'
 import { Button } from '../components/ui/Button'
 import { Card } from '../components/ui/Card'
+import { CountUp } from '../components/ui/CountUp'
+import { PulseDot } from '../components/ui/PulseDot'
+import { success as hapticSuccess } from '../lib/haptics'
 import { MetricRing } from '../components/ui/MetricRing'
 import { Row, Divider } from '../components/ui/Row'
 import { Screen } from '../components/ui/Screen'
@@ -15,6 +18,7 @@ import { StatTile } from '../components/ui/StatTile'
 import { Type } from '../components/ui/Type'
 import { OrbScene } from '../components/three/OrbScene'
 import { useEngineRun } from '../hooks/useEngineRun'
+import { engines as engineRegistry } from '../engines'
 import { signed } from '../lib/engineUi'
 import { formatBytes, formatPercent, formatTemperature, relativeTime } from '../lib/format'
 import { getMonitorState, useMonitor } from '../services/monitor'
@@ -31,8 +35,9 @@ export default function DashboardScreen() {
   const { preferences, reducedMotion } = usePreferences()
   const { metrics, health, alerts, history, status, error, lastUpdatedAt } = useMonitor()
   const { run, runningId } = useEngineRun()
-  const { runtime } = useGamingRuntime()
+  const { runtime, capabilities } = useGamingRuntime()
   const overlayOn = runtime.showing === true
+  const hudLabel = preferences.overlayVisibility === 'disabled' ? 'HUD DISABLED' : capabilities.overlayRestricted ? 'HUD RESTRICTED' : overlayOn ? 'HUD LIVE' : capabilities.overlay ? 'HUD READY' : 'HUD ACCESS NEEDED'
   const { data: library } = useGameLibrary()
   const featured = selectGames(library.games).find((game) => game.installed)
   const focused = useIsFocused()
@@ -87,18 +92,10 @@ export default function DashboardScreen() {
         </View>
         <View style={styles.statusBlock}>
           <Badge label={status === 'live' ? 'LIVE' : String(status).toUpperCase()} tone={status === 'live' ? 'success' : status === 'sampling' ? 'warn' : 'danger'} />
-          <View
-            style={[
-              styles.statusDot,
-              {
-                backgroundColor:
-                  status === 'live'
-                    ? theme.colors.semantic.green
-                    : status === 'sampling'
-                      ? theme.colors.semantic.yellow
-                      : theme.colors.semantic.red,
-              },
-            ]}
+          <PulseDot
+            active={status === 'live'}
+            tone={status === 'live' ? 'success' : status === 'sampling' ? 'warn' : 'danger'}
+            size={8}
           />
         </View>
       </View>
@@ -107,22 +104,34 @@ export default function DashboardScreen() {
         <Type variant="bodySm" tone="secondary">{featured ? `Continue with ${featured.profile.name}. Your setup stays with this game.` : 'Build your personal Game Space, set a profile and bring your session tools into the game.'}</Type>
         <Button label={featured ? 'Launch game' : 'Open Game Space'} onPress={async () => {
           if (!featured) { navigation.navigate('Games'); return }
-          try { const result = await launchGame(featured, gamingConfig(preferences, theme, reducedMotion)); setLastAction(result.message) } catch (error) { setLastAction(error.message) }
+          try { const result = await launchGame(featured, gamingConfig(preferences, theme, reducedMotion)); hapticSuccess(); setLastAction(result.message) } catch (error) { setLastAction(error.message) }
         }} />
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
           <Button label="HUD & tools" variant="ghost" size="sm" onPress={() => navigation.navigate('GamingTools')} />
           <Button label="Macro Studio" variant="ghost" size="sm" onPress={() => navigation.navigate('MacroStudio')} />
           <Button label="Network" variant="ghost" size="sm" onPress={() => navigation.navigate('Network')} />
+          <Button label="Device check" variant="ghost" size="sm" onPress={() => navigation.navigate('DeviceCheck')} />
         </View>
       </GameArtwork>
 
       <View style={styles.signalRow}>
-        <Badge label={overlayOn ? 'HUD LIVE' : 'HUD READY'} tone={overlayOn ? 'success' : 'accent'} />
+        <Badge label={hudLabel} tone={overlayOn ? 'success' : 'neutral'} />
         <Badge label={appActive ? 'TELEMETRY ON' : 'PAUSED'} tone={appActive ? 'info' : 'neutral'} />
         <Type variant="caption" tone="tertiary" style={{ flex: 1 }} numberOfLines={1}>
-          {overlayOn ? 'Gaming tools are available above other apps.' : 'Launch a session to bring tools into your game.'}
+          {preferences.overlayVisibility === 'disabled' ? 'Gaming service is stopped by your visibility preference.' : capabilities.overlayReason ?? (overlayOn ? 'Gaming tools are available above other apps.' : 'Start a session from Optinix to use tools over a library game.')}
         </Type>
       </View>
+
+      {!capabilities.overlay || !capabilities.usageAccess ? (
+        <Card style={{ gap: 6 }}>
+          <Row
+            title="Finish HUD setup"
+            subtitle={capabilities.overlayReason ?? 'Two permissions keep the assistant panel and game detection working over your games.'}
+            right={<Button label="Device check" size="sm" variant="secondary" onPress={() => navigation.navigate('DeviceCheck')} />}
+            onPress={() => navigation.navigate('DeviceCheck')}
+          />
+        </Card>
+      ) : null}
 
       <View style={styles.sectionIntro}><Type variant="h2">Device health</Type><Type variant="caption" tone="tertiary">Score is an estimate from available device readings.</Type></View>
 
@@ -141,9 +150,12 @@ export default function DashboardScreen() {
           stroke={9}
           gradientColors={[theme.accent.color, theme.colors.semantic.cyan, theme.colors.semantic.violet]}
         >
-          <Type variant="monoXl" style={{ fontSize: 40 }}>
-            {health?.score ?? '--'}
-          </Type>
+          <CountUp
+            value={health?.score ?? null}
+            variant="monoXl"
+            tone={health?.score == null ? 'tertiary' : 'primary'}
+            style={{ fontSize: 40 }}
+          />
           <Type
             variant="eyebrow"
             tone={health?.grade === 'poor' ? 'danger' : health?.grade === 'fair' ? 'warn' : 'accent'}
@@ -293,7 +305,7 @@ export default function DashboardScreen() {
           <Row
             title="Optimise"
              subtitle="Device audits, own cache and supported settings"
-             value="10 engines"
+             value={`${engineRegistry.length} engines`}
             onPress={() => navigation.navigate('Boost')}
           />
           <Divider style={{ marginHorizontal: theme.density.cardPad }} />
@@ -319,7 +331,6 @@ export default function DashboardScreen() {
 const styles = StyleSheet.create({
   header: { flexDirection: 'row', alignItems: 'flex-end', paddingTop: 6 },
   statusBlock: { alignItems: 'flex-end', gap: 6, paddingBottom: 3 },
-  statusDot: { width: 7, height: 7, borderRadius: 4 },
   signalRow: { flexDirection: 'row', alignItems: 'center', gap: 8, minHeight: 30 },
   sectionIntro: { gap: 4 },
   hero: { height: 230, alignItems: 'center', justifyContent: 'center' },

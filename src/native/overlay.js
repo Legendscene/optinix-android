@@ -19,14 +19,8 @@ export const overlayNative = {
   hasPermission() {
     return safeCall('hasPermission', false)
   },
-  requestPermission() {
-    return safeCall('requestPermission', false)
-  },
   start(config = {}) {
     return safeCall('start', false, config)
-  },
-  setConfig(config = {}) {
-    return safeCall('setConfig', false, config)
   },
   stop() {
     return safeCall('stop', false)

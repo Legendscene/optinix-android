@@ -1,11 +1,17 @@
 /**
- * designTokens.js — the Optinix design language, ported 1:1 from
- * PC-Optimizer/desktop/src/index.css so both apps share one visual identity.
+ * designTokens.js — the Optinix design language, ported from
+ * PC-Optimizer/desktop/src (design-system.css owns the shell tokens,
+ * index.css the legacy table) so both apps share one visual identity.
  *
- * PC ships its theme as CSS variables driven by three attributes (`data-theme`,
- * `data-accent`, `data-density`). React Native has no cascade, so the same
- * values are expressed as plain objects and resolved at runtime by
- * `src/theme/ThemeProvider.js`, which exposes `useTheme()`.
+ * Current desktop art direction (2026-11-04 "Monochrome desktop redesign"):
+ * pure black/white canvases, neutral surfaces, lightness-only status
+ * differentiation and one ink accent. The four coloured accent presets are
+ * kept for saved preferences (desktop keeps legacy values too) but `mono`
+ * is the fresh-install default so Android looks like the desktop product.
+ *
+ * PC ships its theme as CSS variables driven by two attributes (`data-theme`
+ * + density); React Native has no cascade, so the same values are expressed
+ * as plain objects and resolved at runtime by `src/theme/ThemeProvider.js`.
  *
  * Rule carried over from the desktop app: a value that is not measured is
  * `null`, never a fabricated number. The same rule governs `status` below.
@@ -13,98 +19,120 @@
 
 /* ------------------------------------------------------------------ */
 /* Surfaces & text — dark is the default identity                      */
+/* Mirrors design-system.css `:root` (ui-canvas…ui-quiet)              */
 /* ------------------------------------------------------------------ */
 
 export const DARK = {
   mode: 'dark',
   surface: {
-    0: '#06070a',
-    1: '#0b0d12',
-    2: '#101319',
-    3: '#171b23',
-    4: '#20252f',
+    0: '#000000',
+    1: '#111111',
+    2: '#191919',
+    3: '#232323',
+    4: '#303030',
   },
   border: {
-    base: '#1e232c',
-    light: '#2c333f',
+    base: '#2c2c2c',
+    light: '#555555',
   },
   text: {
-    primary: '#eef1f6',
-    secondary: '#aeb7c6',
-    tertiary: '#8b94a5',
+    primary: '#ffffff',
+    secondary: '#c1c1c1',
+    tertiary: '#a0a0a0',
   },
   semantic: {
-    green: '#3ea86a',
-    greenDim: 'rgba(62,168,106,0.14)',
-    yellow: '#c9962f',
-    yellowDim: 'rgba(201,150,47,0.14)',
-    red: '#d9534f',
-    redDim: 'rgba(217,83,79,0.14)',
-    cyan: '#5b9dff',
-    cyanDim: 'rgba(74,168,196,0.14)',
-    violet: '#9b7bff',
-    violetDim: 'rgba(139,123,247,0.13)',
-    violetLine: 'rgba(139,123,247,0.28)',
-    egGreen: '#22eba3',
-    egGreenDim: 'rgba(34,235,163,0.14)',
-    egLine: 'rgba(34,235,163,0.32)',
-    egInk: '#04130e',
+    /** Monochrome semantics: lightness carries severity, labels carry meaning. */
+    green: '#ffffff',
+    greenDim: 'rgba(255,255,255,0.10)',
+    yellow: '#c1c1c1',
+    yellowDim: 'rgba(255,255,255,0.10)',
+    red: '#ffffff',
+    redDim: 'rgba(255,255,255,0.10)',
+    cyan: '#ffffff',
+    cyanDim: 'rgba(255,255,255,0.10)',
+    violet: '#c1c1c1',
+    violetDim: 'rgba(255,255,255,0.10)',
+    violetLine: '#2c2c2c',
+    egGreen: '#ffffff',
+    egGreenDim: 'rgba(255,255,255,0.10)',
+    egLine: '#555555',
+    egInk: '#000000',
   },
-  chart: ['#00e5cc', '#4aa8c4', '#c9962f', '#d9534f'],
+  chart: ['#ffffff', '#c1c1c1', '#a0a0a0', '#555555'],
   /** dim/line/ink are derived per accent; see ACCENTS. */
-  onAccent: '#06120f',
-  overlay: 'rgba(4,6,10,0.72)',
+  onAccent: '#000000',
+  overlay: 'rgba(0,0,0,0.72)',
   scrim: 'rgba(0,0,0,0.62)',
-  grid: 'rgba(255,255,255,0.035)',
+  grid: 'rgba(255,255,255,0.04)',
 }
 
 export const LIGHT = {
   mode: 'light',
   surface: {
-    0: '#f6f7f9',
-    1: '#ffffff',
-    2: '#ffffff',
-    3: '#eef0f4',
-    4: '#e2e5eb',
+    0: '#ffffff',
+    1: '#f5f5f5',
+    2: '#eeeeee',
+    3: '#e4e4e4',
+    4: '#d7d7d7',
   },
   border: {
-    base: '#e3e6ec',
-    light: '#d2d7e0',
+    base: '#d7d7d7',
+    light: '#a3a3a3',
   },
   text: {
-    primary: '#171a20',
-    secondary: '#454b57',
-    tertiary: '#646c7c',
+    primary: '#000000',
+    secondary: '#414141',
+    tertiary: '#565656',
   },
   semantic: {
-    green: '#1d7f4c',
-    greenDim: 'rgba(29,127,76,0.10)',
-    yellow: '#96701c',
-    yellowDim: 'rgba(150,112,28,0.10)',
-    red: '#b93b38',
-    redDim: 'rgba(185,59,56,0.10)',
-    cyan: '#1f7e99',
-    cyanDim: 'rgba(31,126,153,0.10)',
-    violet: '#6b5ce0',
-    violetDim: 'rgba(107,92,224,0.10)',
-    violetLine: 'rgba(107,92,224,0.28)',
-    egGreen: '#0f9d6b',
-    egGreenDim: 'rgba(15,157,107,0.12)',
-    egLine: 'rgba(15,157,107,0.32)',
+    green: '#000000',
+    greenDim: 'rgba(0,0,0,0.10)',
+    yellow: '#414141',
+    yellowDim: 'rgba(0,0,0,0.10)',
+    red: '#000000',
+    redDim: 'rgba(0,0,0,0.10)',
+    cyan: '#000000',
+    cyanDim: 'rgba(0,0,0,0.10)',
+    violet: '#414141',
+    violetDim: 'rgba(0,0,0,0.10)',
+    violetLine: '#d7d7d7',
+    egGreen: '#000000',
+    egGreenDim: 'rgba(0,0,0,0.10)',
+    egLine: '#a3a3a3',
     egInk: '#ffffff',
   },
-  chart: ['#0b7f70', '#1f7e99', '#96701c', '#b93b38'],
+  chart: ['#000000', '#414141', '#565656', '#a3a3a3'],
   onAccent: '#ffffff',
   overlay: 'rgba(255,255,255,0.82)',
-  scrim: 'rgba(16,20,28,0.30)',
-  grid: 'rgba(16,20,28,0.03)',
+  scrim: 'rgba(0,0,0,0.30)',
+  grid: 'rgba(0,0,0,0.03)',
 }
 
 /* ------------------------------------------------------------------ */
-/* Accent presets — dark keeps the neon values, light darkens for AA   */
+/* Accent presets — `mono` mirrors the desktop ink accent (the 2026    */
+/* monochrome redesign retired colored accents there). Saved prefs     */
+/* keep working, so the four legacy presets stay selectable.           */
 /* ------------------------------------------------------------------ */
 
 export const ACCENTS = {
+  mono: {
+    dark: {
+      accent: '#ffffff',
+      hover: '#c1c1c1',
+      dim: 'rgba(255,255,255,0.10)',
+      ink: '#ffffff',
+      line: '#555555',
+      onAccent: '#000000',
+    },
+    light: {
+      accent: '#000000',
+      hover: '#414141',
+      dim: 'rgba(0,0,0,0.10)',
+      ink: '#000000',
+      line: '#a3a3a3',
+      onAccent: '#ffffff',
+    },
+  },
   teal: {
     dark: {
       accent: '#2ee6cf',
@@ -180,6 +208,7 @@ export const ACCENTS = {
 }
 
 export const ACCENT_OPTIONS = [
+  { id: 'mono', label: 'Mono' },
   { id: 'teal', label: 'Teal' },
   { id: 'indigo', label: 'Indigo' },
   { id: 'amber', label: 'Amber' },
@@ -202,11 +231,13 @@ export const DENSITY_OPTIONS = [
 
 export const typography = {
   family: {
-    /** Orbitron for the brand/hero numerals. */
+    /** Plus Jakarta Sans = the desktop --font-display face. Orbitron was
+     *  retired 2026-11-06; the legacy `brand` key maps to the same face
+     *  so old references resolve without a second bundled font. */
     display: 'PlusJakartaSans_700Bold',
     displayMedium: 'PlusJakartaSans_600SemiBold',
     displayRegular: 'PlusJakartaSans_500Medium',
-    brand: 'Orbitron_700Bold',
+    brand: 'PlusJakartaSans_700Bold',
     body: 'Inter_400Regular',
     bodyMedium: 'Inter_500Medium',
     bodySemi: 'Inter_600SemiBold',
@@ -276,12 +307,14 @@ export const DENSITY = {
 }
 
 export const radius = {
+  /* Mirrors the desktop's --radius-control (7px) and --radius-card (12px):
+   * `md`/`soft` style controls and inputs, `lg`/`xl` style cards. */
   sharp: 2,
   xs: 6,
-  soft: 8,
-  md: 10,
-  lg: 14,
-  xl: 16,
+  soft: 7,
+  md: 7,
+  lg: 12,
+  xl: 12,
   '2xl': 20,
   '3xl': 26,
   pill: 999,
@@ -290,80 +323,75 @@ export const radius = {
 
 /* ------------------------------------------------------------------ */
 /* Shadows — RN needs both shadow* (iOS) and elevation (Android)       */
+/* Mirrors --shadow-e1..e3 (0 1px 2px #00000018, 0 8px 22px #0000001c, */
+/* 0 12px 32px #00000026): the monochrome look is nearly flat. `e4` is */
+/* a mobile-only step for sheets; nothing gets heavier than that.      */
 /* ------------------------------------------------------------------ */
 
 export const shadows = {
   e1: {
     shadowColor: '#000',
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
+    shadowOpacity: 0.09,
+    shadowRadius: 2,
     shadowOffset: { width: 0, height: 1 },
     elevation: 2,
   },
   e2: {
     shadowColor: '#000',
-    shadowOpacity: 0.36,
-    shadowRadius: 9,
-    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.11,
+    shadowRadius: 11,
+    shadowOffset: { width: 0, height: 8 },
     elevation: 5,
   },
   e3: {
     shadowColor: '#000',
-    shadowOpacity: 0.44,
-    shadowRadius: 20,
-    shadowOffset: { width: 0, height: 8 },
-    elevation: 11,
+    shadowOpacity: 0.15,
+    shadowRadius: 16,
+    shadowOffset: { width: 0, height: 12 },
+    elevation: 9,
   },
   e4: {
     shadowColor: '#000',
-    shadowOpacity: 0.52,
-    shadowRadius: 32,
+    shadowOpacity: 0.18,
+    shadowRadius: 20,
     shadowOffset: { width: 0, height: 14 },
-    elevation: 18,
+    elevation: 12,
   },
-}
-
-/** Colored glow built from the live accent so presets keep working. */
-export function glow(color, strength = 0.55, radiusPx = 14) {
-  return {
-    shadowColor: color,
-    shadowOpacity: strength,
-    shadowRadius: radiusPx,
-    shadowOffset: { width: 0, height: 0 },
-    elevation: Math.round(radiusPx * 0.55),
-  }
 }
 
 /* ------------------------------------------------------------------ */
 /* Gradients — arrays of stop colors for expo-linear-gradient          */
 /* ------------------------------------------------------------------ */
 
+/* Ink-only ramps (desktop monochrome). Meaning is carried by labels, so
+   the old semantic ramps collapse into lightness steps. */
+
 export const GRADIENTS = {
   dark: {
-    hero: ['#06070a', '#0b0d12', '#06070a'],
-    accent: ['#2ee6cf', '#3ad9c2', '#79e6d3'],
-    title: ['#e8eaef', '#4df0e1', '#8b7bf7'],
-    control: ['#00e5cc', '#4aa8c4', '#8b7bf7'],
-    optimized: ['#22eba3', '#00e5cc', '#4aa8c4'],
-    analyzing: ['#ffc75c', '#ffb020', '#c9962f'],
-    critical: ['#ff96ac', '#d9534f', '#b93b38'],
-    companion: ['#a99cff', '#8b7bf7', '#6b5ce0'],
-    glass: ['rgba(20,22,26,0.92)', 'rgba(10,11,13,0.88)'],
-    card: ['rgba(23,27,35,0.9)', 'rgba(11,13,18,0.96)'],
-    rail: ['transparent', 'rgba(0,229,204,0.32)', 'rgba(139,123,247,0.32)', 'transparent'],
+    hero: ['#000000', '#0d0d0d', '#000000'],
+    accent: ['#ffffff', '#d9d9d9', '#b3b3b3'],
+    title: ['#ffffff', '#c1c1c1', '#7a7a7a'],
+    control: ['#ffffff', '#d4d4d4'],
+    optimized: ['#ffffff', '#c1c1c1', '#8f8f8f'],
+    analyzing: ['#e3e3e3', '#c1c1c1', '#9a9a9a'],
+    critical: ['#ffffff', '#e0e0e0', '#bdbdbd'],
+    companion: ['#c1c1c1', '#a0a0a0', '#6b6b6b'],
+    glass: ['rgba(17,17,17,0.94)', 'rgba(0,0,0,0.90)'],
+    card: ['rgba(25,25,25,0.95)', 'rgba(10,10,10,0.96)'],
+    rail: ['transparent', 'rgba(255,255,255,0.30)', 'rgba(255,255,255,0.16)', 'transparent'],
   },
   light: {
-    hero: ['#ffffff', '#f6f7f9', '#eef0f4'],
-    accent: ['#0b7f70', '#1f7e99', '#6b5ce0'],
-    title: ['#171a20', '#0a6e62', '#0b7f70'],
-    control: ['#0b7f70', '#1f7e99'],
-    optimized: ['#1d7f4c', '#0b7f70', '#1f7e99'],
-    analyzing: ['#96701c', '#9a6700', '#855800'],
-    critical: ['#b93b38', '#c2185b', '#a6144e'],
-    companion: ['#6b5ce0', '#4f46e5', '#4338ca'],
-    glass: ['rgba(255,255,255,0.94)', 'rgba(246,247,249,0.9)'],
-    card: ['rgba(255,255,255,0.98)', 'rgba(238,240,244,0.96)'],
-    rail: ['transparent', 'rgba(11,127,112,0.28)', 'rgba(107,92,224,0.28)', 'transparent'],
+    hero: ['#ffffff', '#f5f5f5', '#eeeeee'],
+    accent: ['#000000', '#2b2b2b', '#4a4a4a'],
+    title: ['#000000', '#414141', '#6b6b6b'],
+    control: ['#000000', '#2e2e2e'],
+    optimized: ['#2b2b2b', '#414141', '#565656'],
+    analyzing: ['#414141', '#565656', '#6e6e6e'],
+    critical: ['#000000', '#1f1f1f', '#3a3a3a'],
+    companion: ['#414141', '#565656', '#777777'],
+    glass: ['rgba(255,255,255,0.95)', 'rgba(245,245,245,0.92)'],
+    card: ['rgba(255,255,255,0.98)', 'rgba(238,238,238,0.96)'],
+    rail: ['transparent', 'rgba(0,0,0,0.26)', 'rgba(0,0,0,0.14)', 'transparent'],
   },
 }
 
@@ -443,7 +471,6 @@ export default {
   DENSITY,
   radius,
   shadows,
-  glow,
   GRADIENTS,
   GRADIENT_LOCATIONS,
   motion,

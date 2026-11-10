@@ -8,10 +8,12 @@ import { Screen } from '../components/ui/Screen'
 import { PageHeader } from '../components/ui/PageHeader'
 import { Field } from '../components/ui/Field'
 import { Segmented } from '../components/ui/Segmented'
+import { EmptyState } from '../components/ui/EmptyState'
 import { ResultNotice } from '../components/ui/ResultNotice'
 import { GameArtwork, GameIcon } from '../components/gaming/GameArtwork'
 import { discoverGames, gameLibrary, selectGames, updateGame, useGameLibrary } from '../store/gameLibrary'
 import { gamingConfig, launchGame } from '../services/gaming'
+import { success as hapticSuccess } from '../lib/haptics'
 import { usePreferences, useTheme } from '../theme/ThemeProvider'
 
 export default function GamesScreen({ navigation }) {
@@ -19,13 +21,19 @@ export default function GamesScreen({ navigation }) {
   const { preferences, reducedMotion } = usePreferences()
   const { data, ready, error } = useGameLibrary()
   const [search, setSearch] = useState('')
-  const [filter, setFilter] = useState('all')
+  // Installed-first library: a saved title that no longer exists on this
+  // phone must not sit in the main deck pretending to be playable. "All"
+  // still shows the full saved library (with honest Unavailable badges).
+  const [filter, setFilter] = useState('installed')
   const [sort, setSort] = useState('recent')
   const [busy, setBusy] = useState(false)
   const [note, setNote] = useState(null)
   const columns = useWindowDimensions().width >= 600 ? 3 : 2
   const games = useMemo(() => selectGames(data.games, { search, filter, sort }), [data.games, search, filter, sort])
   const featured = selectGames(data.games).find((game) => game.installed)
+  const hiddenNotInstalled = filter === 'installed' && !search
+    ? data.games.filter((game) => !game.installed).length
+    : 0
 
   useFocusEffect(useCallback(() => {
     let alive = true
@@ -43,7 +51,11 @@ export default function GamesScreen({ navigation }) {
   }
   const launch = async (game) => {
     setBusy(true)
-    try { setNote(await launchGame(game, gamingConfig(preferences, theme, reducedMotion))) }
+    try {
+      const result = await launchGame(game, gamingConfig(preferences, theme, reducedMotion))
+      hapticSuccess()
+      setNote(result)
+    }
     catch (e) { setNote({ ok: false, message: e.message }) }
     finally { setBusy(false) }
   }
@@ -69,7 +81,14 @@ export default function GamesScreen({ navigation }) {
               {featured ? <Button label="Configure profile" variant="ghost" onPress={() => navigation.navigate('GameProfile', { packageName: featured.packageName })} /> : null}
             </GameArtwork>
             <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
-              {[['GamingTools', 'HUD & tools'], ['MacroStudio', 'Macro Studio'], ['Network', 'Network'], ['Sessions', 'Sessions']].map(([route, label]) => <Button key={route} label={label} size="sm" variant="secondary" onPress={() => navigation.navigate(route)} />)}
+              {[
+                ['GamingTools', 'HUD & tools'],
+                ['ProcessManager', 'Background apps'],
+                ['StartupManager', 'Startup manager'],
+                ['MacroStudio', 'Macro Studio'],
+                ['Network', 'Network'],
+                ['Sessions', 'Sessions'],
+              ].map(([route, label]) => <Button key={route} label={label} size="sm" variant="secondary" onPress={() => navigation.navigate(route)} />)}
             </View>
             <ResultNotice result={note || error} />
             <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -77,12 +96,17 @@ export default function GamesScreen({ navigation }) {
               <Button label="Refresh" variant="ghost" size="sm" loading={busy} onPress={discover} />
             </View>
             <Field label="Search library" placeholder="Game name or package" value={search} onChangeText={setSearch} />
-            <Segmented options={[{ id: 'all', label: 'All' }, { id: 'favorites', label: 'Favorites' }, { id: 'installed', label: 'Installed' }]} value={filter} onChange={setFilter} />
+            <Segmented options={[{ id: 'installed', label: 'Installed' }, { id: 'favorites', label: 'Favorites' }, { id: 'all', label: 'All' }]} value={filter} onChange={setFilter} />
+            {hiddenNotInstalled > 0 ? (
+              <Type variant="caption" tone="tertiary">
+                {hiddenNotInstalled} saved title{hiddenNotInstalled === 1 ? ' is' : 's are'} not on this phone — the All tab shows them with an Unavailable badge.
+              </Type>
+            ) : null}
             <Segmented options={[{ id: 'recent', label: 'Recently launched' }, { id: 'name', label: 'Name A–Z' }]} value={sort} onChange={setSort} />
             {!data.discoveryEnabled ? <Type variant="caption" tone="tertiary">Discovery queries apps with launcher icons, then identifies likely games. Nothing is uploaded. You choose which extra apps to add.</Type> : null}
           </View>
         }
-        ListEmptyComponent={<Card><Type variant="h3">{!ready ? 'Loading library…' : search || filter !== 'all' ? 'No matching games' : 'Your first game belongs here'}</Type><Type variant="bodySm" tone="tertiary" style={{ marginTop: 8 }}>Use Discover games or Add game. Titles without a game category can be added manually.</Type></Card>}
+        ListEmptyComponent={<Card><EmptyState glyph={ready && (search || filter !== 'all') ? '◈' : '🎮'} title={!ready ? 'Loading library…' : search || filter !== 'all' ? 'No matching games' : 'Your first game belongs here'} body={ready && (search || filter !== 'all') ? 'Try a different search or filter — sorted views show titles you already saved.' : 'Use Discover games or Add game. Titles without a game category can be added manually.'} /></Card>}
         renderItem={({ item }) => (
           <Card style={{ flex: 1, maxWidth: `${100 / columns}%`, gap: 12 }}>
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
