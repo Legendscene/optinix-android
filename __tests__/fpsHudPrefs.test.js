@@ -39,4 +39,14 @@ describe('FPS HUD preferences', () => {
     const next = sanitizePreferences({ autoOptimizeOnLaunch: true, mode: 'dark' })
     expect(next.autoOptimizeOnLaunch).toBeUndefined()
   })
+
+  test('stats HUD resets to off exactly once for pre-migration installs', () => {
+    // Old install with the saved "on": sanitized → off, marker set.
+    const migrated = sanitizePreferences({ fpsHudEnabled: true })
+    expect(migrated.fpsHudEnabled).toBe(false)
+    expect(migrated.fpsHudResetV2).toBe(true)
+    // The migration persists, so a later deliberate "on" survives.
+    const deliberate = sanitizePreferences({ fpsHudEnabled: true, fpsHudResetV2: true })
+    expect(deliberate.fpsHudEnabled).toBe(true)
+  })
 })

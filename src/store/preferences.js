@@ -40,6 +40,10 @@ export const DEFAULT_PREFERENCES = Object.freeze({
   // Separate FPS stats HUD (second overlay window). Game FPS itself is not
   // measurable on Android; the HUD always renders it as honest "--".
   fpsHudEnabled: false,
+  // One-time marker (2026-11-10): installs upgraded from the early test builds
+  // carried a saved `fpsHudEnabled: true`; sanitize turns the plate off once,
+  // then this marker preserves any later, deliberate user choice.
+  fpsHudResetV2: false,
   fpsHudMode: 'minimal', // 'minimal' | 'compact' | 'detailed'
   fpsHudOpacity: 0.9,
   fpsHudCorner: 'topLeft', // 'topLeft' | 'topRight' | 'bottomLeft' | 'bottomRight'
@@ -80,6 +84,11 @@ export function sanitizePreferences(raw) {
     : [...DEFAULT_PREFERENCES.overlayShortcuts]
   next.fpsHudOpacity = Math.max(0.4, Math.min(1, Number(next.fpsHudOpacity) || 0.9))
   next.fpsHudScale = Math.max(0.7, Math.min(1.6, Number(next.fpsHudScale) || 1))
+  // One-time stats-HUD reset (see fpsHudResetV2 in DEFAULT_PREFERENCES).
+  if (next.fpsHudEnabled && next.fpsHudResetV2 !== true) {
+    next.fpsHudEnabled = false
+  }
+  next.fpsHudResetV2 = true
   next.fpsHudMetrics = Array.isArray(next.fpsHudMetrics)
     ? [...new Set(next.fpsHudMetrics.filter((key) => ['cpu', 'ram', 'temp', 'battery', 'refresh'].includes(key)))]
     : [...DEFAULT_PREFERENCES.fpsHudMetrics]

@@ -78,21 +78,43 @@ const PERMISSIONS = [
     key: 'notifications',
     title: 'Notifications',
     detail: 'Break reminders and gaming session controls live in the notification area.',
+    diagram: 'notifications',
+    steps: [
+      'Tap Allow below — Android asks right here.',
+      'If the prompt never appears, open Android Settings → Apps → Optinix → Notifications.',
+    ],
   },
   {
     key: 'usageAccess',
     title: 'Usage access',
     detail: 'Tells Optinix which game is in the foreground, so the HUD and session tools appear at the right moment.',
+    diagram: 'usage',
+    steps: [
+      'Tap Open below — Android opens "Usage access" directly.',
+      'Find Optinix in the list and tap it.',
+      'Turn on "Permit usage access".',
+    ],
   },
   {
     key: 'overlay',
     title: 'Draw over other apps',
     detail: 'Shows the edge handle, the three-tab game assistant panel and the stats HUD. Android 10 Go may block this permission; in-app tools remain usable.',
+    diagram: 'overlay',
+    steps: [
+      'Tap Open below — Android opens "Display over other apps".',
+      'Find Optinix in the list and tap it.',
+      'Turn on "Allow display over other apps".',
+    ],
   },
   {
     key: 'battery',
     title: 'Unrestricted battery',
     detail: 'Lets timers and the HUD keep running while a long gaming session continues in the background.',
+    diagram: 'battery',
+    steps: [
+      'Tap Allow below — Android shows the battery screen.',
+      'Choose "Unrestricted" for Optinix.',
+    ],
   },
 ]
 
@@ -430,13 +452,15 @@ function IntroStep({ step, setStep, theme, insets, reducedMotion }) {
 }
 
 function PermissionsStep({ step, setStep, theme, insets, reducedMotion, granted, checking, busyKey, askPermission }) {
+  // One expanded guide at a time — the card grows the mock diagram + steps.
+  const [expandedKey, setExpandedKey] = useState(null)
   return (
     <View style={[styles.step, { paddingTop: insets.top + 24, paddingBottom: insets.bottom + 72 }]}>
       <Type variant="h1" tone="primary">
         A few Android permissions
       </Type>
       <Type variant="bodySm" tone="secondary" style={{ marginTop: 8, marginBottom: 14 }}>
-        Each one powers something visible. You can grant now or later in Settings — the rest of the app works either way and Optinix never asks twice on its own.
+        Each one powers something visible. Tap a card to see exactly where Android puts it, then use its button — the rest of the app works either way and Optinix never asks twice on its own.
       </Type>
       <View style={{ gap: 10 }}>
         {PERMISSIONS.map((permission, index) => {
@@ -444,32 +468,56 @@ function PermissionsStep({ step, setStep, theme, insets, reducedMotion, granted,
               ? 'Checking\u2026'
               : granted[permission.key] ? 'Ready' : permission.key === 'overlay' && granted.overlayRestricted ? 'Restricted' : 'Not yet'
           const isGranted = Boolean(granted[permission.key])
+          const expanded = expandedKey === permission.key
           return (
             <Stagger key={permission.key} index={index} reducedMotion={reducedMotion}>
-              <Card padded={false} style={{ paddingHorizontal: 16, paddingVertical: 14 }}>
-                <View style={styles.permissionRow}>
-                  <View style={{ flex: 1, gap: 3 }}>
-                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                      <Type variant="bodySemi">{permission.title}</Type>
-                      <Type variant="mono" tone={isGranted ? 'success' : 'tertiary'}>
-                        {label}
+              <Card padded={false} accent={expanded} style={{ paddingHorizontal: 16, paddingVertical: 14 }}>
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel={`${permission.title}: ${expanded ? 'hide' : 'show'} how to enable`}
+                  onPress={() => {
+                    hapticTap()
+                    setExpandedKey(expanded ? null : permission.key)
+                  }}
+                >
+                  <View style={styles.permissionRow}>
+                    <View style={{ flex: 1, gap: 3 }}>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                        <Type variant="bodySemi">{permission.title}</Type>
+                        <Type variant="mono" tone={isGranted ? 'success' : 'tertiary'}>
+                          {label}
+                        </Type>
+                      </View>
+                      <Type variant="caption" tone="secondary">
+                        {permission.key === 'overlay' && granted.overlayReason ? granted.overlayReason : permission.detail}
                       </Type>
                     </View>
-                    <Type variant="caption" tone="secondary">
-                      {permission.key === 'overlay' && granted.overlayReason ? granted.overlayReason : permission.detail}
-                    </Type>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginLeft: 10 }}>
+                      {!isGranted ? (
+                        <Button
+                          label={buttonLabelFor(permission.key)}
+                          size="sm"
+                          variant="ghost"
+                          loading={busyKey === permission.key}
+                          onPress={() => askPermission(permission.key)}
+                        />
+                      ) : null}
+                      <Type variant="caption" tone={expanded ? 'accent' : 'tertiary'}>
+                        {expanded ? 'Hide' : 'How?'}
+                      </Type>
+                    </View>
                   </View>
-                  {!isGranted ? (
-                    <Button
-                      label={buttonLabelFor(permission.key)}
-                      size="sm"
-                      variant="ghost"
-                      loading={busyKey === permission.key}
-                      onPress={() => askPermission(permission.key)}
-                      style={{ marginLeft: 10 }}
-                    />
-                  ) : null}
-                </View>
+                </Pressable>
+                {expanded ? (
+                  <PermissionGuide
+                    permission={permission}
+                    theme={theme}
+                    accent={theme.accent.color}
+                    busy={busyKey === permission.key}
+                    granted={isGranted}
+                    onAsk={() => askPermission(permission.key)}
+                  />
+                ) : null}
               </Card>
             </Stagger>
           )
@@ -488,6 +536,138 @@ function buttonLabelFor(key) {
   if (key === 'notifications') return 'Allow'
   if (key === 'battery') return 'Allow'
   return 'Open Settings'
+}
+
+/**
+ * PermissionGuide — the "yaha se aise hota h" part: a pure-View miniature of
+ * the exact Android screen or prompt this permission lives on (real chrome
+ * only, nothing invented), the numbered steps, and the same permission action
+ * as the row button. Pure Views keep it theme- and accent-correct with zero
+ * bundled artwork.
+ */
+function PermissionGuide({ permission, theme, accent, busy, granted, onAsk }) {
+  return (
+    <View style={styles.guide}>
+      <PermissionDiagram kind={permission.diagram} theme={theme} accent={accent} />
+      <View style={{ gap: 7, marginTop: 12 }}>
+        {permission.steps.map((text, index) => (
+          <View key={index} style={styles.guideStep}>
+            <View style={[styles.guideStepNum, { backgroundColor: theme.colors.surface[3] }]}>
+              <Type variant="mono" tone="secondary">{index + 1}</Type>
+            </View>
+            <Type variant="caption" tone="secondary" style={{ flex: 1 }}>{text}</Type>
+          </View>
+        ))}
+      </View>
+      {!granted ? (
+        <Button
+          label={buttonLabelFor(permission.key)}
+          size="sm"
+          loading={busy}
+          onPress={onAsk}
+          style={{ alignSelf: 'flex-start', marginTop: 12 }}
+        />
+      ) : null}
+    </View>
+  )
+}
+
+/** A mock ON switch — accent track, knob at the right edge. */
+function DiagramSwitch({ theme, accent }) {
+  return (
+    <View style={[styles.diagramSwitch, { backgroundColor: accent }]}>
+      <View style={[styles.diagramSwitchKnob, { backgroundColor: theme.accent.onAccent }]} />
+    </View>
+  )
+}
+
+function PermissionDiagram({ kind, theme, accent }) {
+  const frame = [styles.diagramFrame, { backgroundColor: theme.colors.surface[1], borderColor: theme.colors.border.base }]
+  const titleRow = [styles.diagramTitleRow, { borderBottomColor: theme.colors.border.base }]
+  const bar = (width, opacity) => [styles.diagramBar, { width, backgroundColor: theme.colors.text.tertiary, opacity }]
+
+  if (kind === 'notifications') {
+    return (
+      <View style={frame}>
+        <Type variant="caption" tone="tertiary" style={styles.diagramCaption}>Android&apos;s own prompt</Type>
+        <View style={styles.diagramAppRow}>
+          <View style={[styles.diagramMark, { backgroundColor: accent }]} />
+          <View style={{ flex: 1 }}>
+            <Type variant="caption" tone="primary">Optinix</Type>
+            <Type variant="caption" tone="secondary">Allow Optinix to send notifications?</Type>
+          </View>
+        </View>
+        <View style={styles.diagramPillRow}>
+          <View style={[styles.diagramPill, { borderColor: theme.colors.border.base }]}>
+            <Type variant="caption" tone="tertiary">Don&apos;t allow</Type>
+          </View>
+          <View style={[styles.diagramPill, { backgroundColor: accent, borderWidth: 1, borderColor: accent }]}>
+            <Type variant="caption" tone="onAccent">Allow</Type>
+          </View>
+        </View>
+      </View>
+    )
+  }
+
+  if (kind === 'usage' || kind === 'overlay') {
+    const title = kind === 'usage' ? 'Usage access' : 'Display over other apps'
+    const toggleLabel = kind === 'usage' ? 'Permit usage access' : 'Allow display over other apps'
+    return (
+      <View style={frame}>
+        <View style={titleRow}>
+          <Type variant="mono" tone="tertiary">{title}</Type>
+        </View>
+        <View style={styles.diagramRow}>
+          <View style={bar('46%', 0.6)} />
+          <View style={bar('20%', 0.35)} />
+        </View>
+        <View style={styles.diagramRow}>
+          <Type variant="mono" tone="primary">Optinix</Type>
+          <DiagramSwitch theme={theme} accent={accent} />
+        </View>
+        <View style={styles.diagramRow}>
+          <Type variant="caption" tone="secondary">{toggleLabel}</Type>
+          <DiagramSwitch theme={theme} accent={accent} />
+        </View>
+      </View>
+    )
+  }
+
+  if (kind === 'battery') {
+    const options = ['Unrestricted', 'Optimised', 'Restricted']
+    return (
+      <View style={frame}>
+        <View style={titleRow}>
+          <Type variant="mono" tone="tertiary">App battery usage</Type>
+        </View>
+        {options.map((name, index) => {
+          const selected = index === 0
+          return (
+            <View key={name} style={styles.diagramRow}>
+              <View style={styles.diagramLead}>
+                <View
+                  style={[
+                    styles.diagramDot,
+                    selected
+                      ? { backgroundColor: accent }
+                      : { borderWidth: 1, borderColor: theme.colors.border.base },
+                  ]}
+                />
+                <Type variant="caption" tone={selected ? 'primary' : 'tertiary'}>{name}</Type>
+              </View>
+              {selected ? (
+                <View style={[styles.diagramPill, { borderWidth: 1, borderColor: accent }]}>
+                  <Type variant="caption" tone="accent">Selected</Type>
+                </View>
+              ) : null}
+            </View>
+          )
+        })}
+      </View>
+    )
+  }
+
+  return null
 }
 
 function DoneStep({ step, theme, insets, reducedMotion, grantedCount, finish }) {
@@ -568,6 +748,35 @@ const styles = StyleSheet.create({
   rail: { position: 'absolute', left: 0, right: 0, alignItems: 'center' },
   railRow: { flexDirection: 'row', gap: 8 },
   permissionRow: { flexDirection: 'row', alignItems: 'center' },
+  guide: { marginTop: 12 },
+  guideStep: { flexDirection: 'row', alignItems: 'center', gap: 9 },
+  guideStepNum: { width: 20, height: 20, borderRadius: 6, alignItems: 'center', justifyContent: 'center' },
+  diagramFrame: { borderWidth: 1, borderRadius: 10, overflow: 'hidden' },
+  diagramCaption: { paddingHorizontal: 10, paddingTop: 8, paddingBottom: 4 },
+  diagramTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+    borderBottomWidth: 1,
+  },
+  diagramRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10, paddingHorizontal: 10, minHeight: 30 },
+  diagramLead: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  diagramBar: { height: 5, borderRadius: 3, flexShrink: 1 },
+  diagramMark: { width: 18, height: 18, borderRadius: 5 },
+  diagramAppRow: { flexDirection: 'row', alignItems: 'center', gap: 9, paddingHorizontal: 10, paddingVertical: 9 },
+  diagramPillRow: { flexDirection: 'row', justifyContent: 'flex-end', gap: 8, paddingHorizontal: 10, paddingBottom: 9 },
+  diagramPill: { paddingHorizontal: 10, paddingVertical: 3, borderRadius: 999 },
+  diagramDot: { width: 10, height: 10, borderRadius: 5 },
+  diagramSwitch: {
+    width: 34,
+    height: 18,
+    borderRadius: 9,
+    justifyContent: 'center',
+    alignItems: 'flex-end',
+    paddingRight: 2,
+  },
+  diagramSwitchKnob: { width: 14, height: 14, borderRadius: 7 },
   motionRow: { borderRadius: 12 },
   previewRow: { flexDirection: 'row', gap: 5, alignItems: 'center' },
   previewBar: { width: 18, height: 4, borderRadius: 2 },
