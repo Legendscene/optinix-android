@@ -25,7 +25,14 @@ export const DEFAULT_PREFERENCES = Object.freeze({
   overlayAccent: 'app', // 'app' (follow theme) | 'mono' | 'teal' | 'indigo' | 'amber' | 'rose'
   overlayShortcuts: ['profile', 'timer', 'network'],
   overlayAutoHide: true,
-  overlayAutoCollapse: '10', // 'never' | '5' | '10' | '20' — seconds before open HUD panels collapse
+  // Timed panel collapse is OFF by default (2026-11-10): the Realme-assistant
+  // model is tap-outside/minimize dismissal, never a timer. Saved '5'/'10'/'20'
+  // values from test installs are reset once via autoCollapseResetV2 below;
+  // Settings still offers the timer for anyone who wants it.
+  overlayAutoCollapse: 'never',
+  // One-time marker: old installs carry a saved collapse timer (the phone's
+  // was '5', set during testing); sanitize folds it to 'never' exactly once.
+  autoCollapseResetV2: false,
   // Control-HUD visibility over games: 'edge' = slim edge handle, 'notification'
   // = no handle, reopen via the notification's "Show game HUD" action,
   // 'disabled' = stop the gaming service, timer and both HUD windows.
@@ -89,6 +96,13 @@ export function sanitizePreferences(raw) {
     next.fpsHudEnabled = false
   }
   next.fpsHudResetV2 = true
+  // One-time auto-collapse fold to 'never' (see autoCollapseResetV2 in
+  // DEFAULT_PREFERENCES): a timer-collapsing panel reads as "self-closing
+  // junk" during play; dismissal is tap-outside/minimize.
+  if (next.overlayAutoCollapse !== 'never' && next.autoCollapseResetV2 !== true) {
+    next.overlayAutoCollapse = 'never'
+  }
+  next.autoCollapseResetV2 = true
   next.fpsHudMetrics = Array.isArray(next.fpsHudMetrics)
     ? [...new Set(next.fpsHudMetrics.filter((key) => ['cpu', 'ram', 'temp', 'battery', 'refresh'].includes(key)))]
     : [...DEFAULT_PREFERENCES.fpsHudMetrics]

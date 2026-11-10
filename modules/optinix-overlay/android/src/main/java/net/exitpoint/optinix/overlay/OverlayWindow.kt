@@ -143,8 +143,8 @@ class OverlayWindow(private val context: Context, private val action: (String) -
     handleBg = OverlayStyle.plate(
       context,
       14,
-      "#242a38",
-      "#0d1017",
+      "#191919",
+      "#0a0a0a",
       OverlayStyle.tint(accentColor, 150),
     )
     handleContent = LinearLayout(context).apply {
@@ -623,7 +623,7 @@ class OverlayWindow(private val context: Context, private val action: (String) -
 
     val strip = LinearLayout(context).apply {
       orientation = LinearLayout.HORIZONTAL
-      background = OverlayStyle.solid(context, 10, Color.parseColor("#12151e"), OverlayStyle.HAIRLINE_SOFT)
+      background = OverlayStyle.solid(context, 10, Color.parseColor("#161616"), OverlayStyle.HAIRLINE_SOFT)
       setPadding(dp(10), dp(7), dp(10), dp(7))
     }
     listOf("cpu" to "CPU", "ram" to "RAM", "temp" to "TEMP", "battery" to "BATTERY").forEach { (key, label) ->
@@ -1360,7 +1360,7 @@ class OverlayWindow(private val context: Context, private val action: (String) -
     }
     val direction = if (docked()) 1f else -1f
     row.animate().cancel()
-    row.animate().alpha(0f).translationX(direction * dp(14)).setDuration(130).withEndAction {
+    row.animate().alpha(0f).translationX(direction * dp(28)).setDuration(150).withEndAction {
       row.alpha = 1f
       row.translationX = 0f
       applyMode(Mode.HANDLE, true)
@@ -1377,15 +1377,16 @@ class OverlayWindow(private val context: Context, private val action: (String) -
       row.scaleY = 1f
       return
     }
+    // Realme assistant opening: the plate slides out of the docked edge
+    // (direction points inward), rapid fade on the way — no scale pop.
     val direction = if (docked()) 1f else -1f
     row.pivotX = if (docked()) row.width.toFloat().coerceAtLeast(1f) else 0f
     row.pivotY = dp(20).toFloat()
     row.alpha = 0f
-    row.translationX = direction * dp(20)
-    row.scaleX = 0.97f
-    row.scaleY = 0.97f
-    row.animate().alpha(1f).translationX(0f).scaleX(1f).scaleY(1f)
-      .setDuration(210).setInterpolator(DecelerateInterpolator()).start()
+    row.translationX = direction * dp(64)
+    row.scaleX = 1f
+    row.scaleY = 1f
+    row.animate().alpha(1f).translationX(0f).setDuration(240).setInterpolator(DecelerateInterpolator()).start()
   }
 
   private fun sectionMetaText(): String = when (section) {
@@ -1523,7 +1524,10 @@ class OverlayWindow(private val context: Context, private val action: (String) -
       val range = (area.height() - height).coerceAtLeast(0)
       area.top + (range * store.preferences.getFloat(yKey(), 0.45f)).toInt()
     } else {
-      (area.top + dp(8)).coerceAtMost(maxOf(area.top, area.bottom - height - dp(8)))
+      // Realme behaviour: the assistant plate opens vertically centered on
+      // the screen, not glued to the top edge.
+      val slack = (area.height() - height).coerceAtLeast(0)
+      (area.top + slack / 2).coerceAtMost(maxOf(area.top, area.bottom - height))
     }
 
     if (mode == Mode.HANDLE) {

@@ -27,4 +27,15 @@ describe('In-game HUD visibility modes', () => {
     delete stale.overlayVisibility
     expect(sanitizePreferences(stale).overlayVisibility).toBe('edge')
   })
+
+  test('the panel collapse timer folds to never exactly once for old installs', () => {
+    expect(DEFAULT_PREFERENCES.overlayAutoCollapse).toBe('never')
+    // The phone's saved '5' from testing resets once, marker set.
+    const migrated = sanitizePreferences({ overlayAutoCollapse: '5' })
+    expect(migrated.overlayAutoCollapse).toBe('never')
+    expect(migrated.autoCollapseResetV2).toBe(true)
+    // A later deliberate timer choice survives the migration.
+    const deliberate = sanitizePreferences({ overlayAutoCollapse: '10', autoCollapseResetV2: true })
+    expect(deliberate.overlayAutoCollapse).toBe('10')
+  })
 })

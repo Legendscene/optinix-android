@@ -653,7 +653,29 @@ on this machine and are lost on `expo prebuild --clean`. Re-apply them:
 
 ## Current status
 
-- **Latest (2026-11-10 noon): HUD simplified to 3 tabs (Tools/Boost/Stats) + animated onboarding — installed and hash-verified.**
+- **Latest (2026-11-10 afternoon): illustrated permission guides + one-time stats-HUD reset installed and verified; Realme-parity overlay interaction pass built.**
+  (1) Onboarding permission cards are now expandable ("How?") with a pure-View mock
+  of the exact Android surface (notification prompt / usage-access list / overlay
+  toggle / battery options), numbered steps and the same action button
+  (`PermissionGuide` + `PermissionDiagram` in `OnboardingScreen.js`).
+  (2) `fpsHudResetV2` one-time migration turns a stale saved stats-HUD "on" off
+  exactly once (test in `fpsHudPrefs`). (3) `overlayAutoCollapse` default is now
+  **'never'** with `autoCollapseResetV2` folding the phone's saved '5 s' timer once
+  (test in `hudVisibilityPrefs`) — dismissal is tap-outside/minimize, Realme-style,
+  never a timer. (4) Overlay interaction pass (`OverlayWindow.kt` /
+  `OverlayStyle.kt` / `OverlayControls.kt`): panel now slides out of the docked edge
+  (240 ms, no scale pop) and hides with a 150 ms throw; the plate opens vertically
+  centered; handle plate + rail/plate/tile/control hexes moved to PC mono
+  (#191919/#0a0a0a, #161616, #262626, #111111; grays #c1c1c1/#a0a0a0/#6b6b6b;
+  navy leftovers #242a38/#12151e/#28303f/#252c3c gone) per the "strict PC parity"
+  direction. Host: Jest **25 suites / 132 tests**, ESLint 0/0, overlay compile +
+  unit tests green. Build A — **84,367,568 B**, SHA-256 `559052B3…317CDBE47`
+  (guides + stats-off): installed, device hash `559052b3…cdb e47` matches,
+  lastUpdateTime **2026-11-10 13:52:57** (Realme's install prompt outlasted two adb
+  timeouts — finished in the background), launch smoke clean with the phone asleep.
+  Build B — **84,367,632 B**, SHA-256 `7021EED135536319077C25D5AC710DBEC705358031A6D888C97E0F6F62DA3EA1`
+  (interaction pass): **NOT installed yet** — needs user approval + prompt consent.
+- **Earlier (2026-11-10 noon): HUD simplified to 3 tabs (Tools/Boost/Stats) + animated onboarding — installed and hash-verified.**
   From the user's "eazy to use" brief (the 6-line rail confused even him). Overlay
   sections cut 6→3: **Tools** (fresh open always lands here; now hosts the network
   check card too), **Boost** (Performance+Optimization merged), **Stats**
@@ -857,6 +879,58 @@ tests**, ESLint 0/0, module lint clean. Release **74,891,192 B**, SHA-256
     latest revision; the current pending install is the 22:03 final revision above.
 
 ## Changelog
+
+### 2026-11-10 (afternoon) — illustrated permission guidance + one-time default resets + Realme-parity interaction pass
+
+User status after the 3-tab install: stats HUD was still ON on the phone (saved
+pref from earlier walkthroughs), onboarding still lacked "usme image bhi dena h ki
+dekh yaha se aise hota h", and he answered the direction questions firmly:
+overlay = **recreate the Realme Game Assistant interaction from the supplied
+reference, stop asking**; app UI = **strict PC Optimizer design-system parity**.
+
+**JS (`OnboardingScreen.js`, `preferences.js`, tests):**
+- `PERMISSIONS` items carry `diagram` + `steps`; new `PermissionGuide` shows a
+  pure-View miniature of the actual Android surface — `notifications` (native
+  prompt card with Don't allow/Allow pills), `usage`/`overlay` (settings list:
+  app row + the exact toggle ON), `battery` (Unrestricted/Optimised/Restricted
+  with the selected pill) — plus numbered steps and the same permission action.
+  Cards toggle via a "How?" press (one expanded at a time); granted cards hide
+  the inner button. Steps text references the button labels honestly.
+- `fpsHudResetV2`: one-time stats-HUD off migration (saved "on" folds off once,
+  marker preserves later deliberate choices) — the previous builds could not
+  retro-fix the phone without a wipe.
+- `overlayAutoCollapse` default `'10'` → **`'never'`** + `autoCollapseResetV2`
+  (the phone's stored `'5'` resets once) — from re-reading the Realme reference
+  frames: the assistant never timer-folds an open panel; dismissal is
+  tap-outside/minimize (both already implemented). Settings keeps Never/5/10/20.
+
+**Kotlin (Realme interaction parity + mono repaint):**
+- `animateIn()`: the plate now **slides out of the docked edge** — start
+  `translationX = direction*dp(64)`, 240 ms Decelerate, no scale pop (was a
+  20 dp/210 ms fade-pop). `collapseToHandle()` throws 28 dp over 150 ms.
+- `dock()`: the open panel is **vertically centered** on the screen (Realme
+  behaviour) instead of pinned at `top+8`.
+- Mono parity: `OverlayStyle` PLATE/RAIL/TILE/CONTROL/TRACK hexes → PC mono
+  (`#191919/#0a0a0a`, `#191919/#0d0d0d`, `#161616`, `#262626`, `#111111`),
+  SECONDARY/MUTED/QUIET → `#c1c1c1/#a0a0a0/#6b6b6b`; handle plate
+  `#242a38/#0d1017` → `#191919/#0a0a0a`; quick-strip cell `#12151e` → `#161616`;
+  `OverlayControls` switch track `#28303f` → `#2e2e2e`, gauge track `#252c3c` →
+  `#2c2c2c`. All remaining navy-tinted grays are gone from the HUD.
+
+**Verification:** Jest **25 suites / 132 tests** (the two new one-time-migration
+tests included), ESLint 0/0; overlay `compileDebugKotlin` + `testDebugUnitTest`
+BUILD SUCCESSFUL. Build A (guides + stats reset) **84,367,568 B**, SHA-256
+`559052B33C6E3507F67F52B953E93CCB76653F63A7EF7B132E48A3E317CDBE47` — installed
+user-approved; Realme's "Continue installation" prompt outlasted two adb
+timeouts but finished in the background (gotcha: always re-check
+`lastUpdateTime` after a "timed out" install), device hash `559052b3…cdbe47`
+verified byte-for-byte, lastUpdateTime **2026-11-10 13:52:57**, launch smoke:
+process alive 10 s +, no FATAL (phone asleep — visual walkthrough is the user's).
+Build B (interaction pass above) **84,367,632 B**, SHA-256
+`7021EED135536319077C25D5AC710DBEC705358031A6D888C97E0F6F62DA3EA1` —
+**not installed**; device walkthrough (slide/collapse feel, centered plate,
+mono surface, stats HUD off after migration) pending. Pushed:
+`18846c9` (guides/reset) on `main`.
 
 ### 2026-11-10 (noon) — HUD simplified to 3 tabs (Tools/Boost/Stats) + animated onboarding; installed and hash-verified
 

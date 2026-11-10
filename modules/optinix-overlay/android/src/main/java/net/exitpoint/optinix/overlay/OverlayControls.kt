@@ -418,7 +418,7 @@ class OverlayMeterBar(context: Context) : View(context) {
     if (h <= 0f || w <= 0f) return
     val radius = h / 2f
     val paint = Paint(Paint.ANTI_ALIAS_FLAG)
-    paint.color = Color.parseColor("#28303f")
+    paint.color = Color.parseColor("#2e2e2e")
     canvas.drawRoundRect(RectF(0f, 0f, w, h), radius, radius, paint)
     if (fraction >= 0f) {
       paint.color = accent
@@ -461,7 +461,7 @@ class OverlayGauge(context: Context) : View(context) {
     paint.style = Paint.Style.STROKE
     paint.strokeWidth = OverlayStyle.dpf(context, 4.6f)
     paint.strokeCap = Paint.Cap.ROUND
-    paint.color = Color.parseColor("#252c3c")
+    paint.color = Color.parseColor("#2c2c2c")
     val rect = RectF(cx - radius, cy - radius, cx + radius, cy + radius)
     canvas.drawArc(rect, 0f, 360f, false, paint)
 

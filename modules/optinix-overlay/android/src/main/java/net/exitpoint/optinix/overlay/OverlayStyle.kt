@@ -17,19 +17,19 @@ import com.facebook.react.common.assets.ReactFontManager
  */
 object OverlayStyle {
   val INK = Color.parseColor("#ffffff")
-  val SECONDARY = Color.parseColor("#dce0ea")
-  val MUTED = Color.parseColor("#9ba3b5")
-  val QUIET = Color.parseColor("#697287")
+  val SECONDARY = Color.parseColor("#c1c1c1")
+  val MUTED = Color.parseColor("#a0a0a0")
+  val QUIET = Color.parseColor("#6b6b6b")
   val HAIRLINE = Color.parseColor("#38FFFFFF")
   val HAIRLINE_SOFT = Color.parseColor("#20FFFFFF")
 
-  const val PLATE_TOP = "#161922"
-  const val PLATE_BOTTOM = "#090b10"
-  const val RAIL_TOP = "#1a1e29"
-  const val RAIL_BOTTOM = "#0c0e14"
-  const val TILE = "#12151e"
-  const val CONTROL = "#1e2330"
-  const val TRACK = "#0a0c12"
+  const val PLATE_TOP = "#191919"
+  const val PLATE_BOTTOM = "#0a0a0a"
+  const val RAIL_TOP = "#191919"
+  const val RAIL_BOTTOM = "#0d0d0d"
+  const val TILE = "#161616"
+  const val CONTROL = "#262626"
+  const val TRACK = "#111111"
 
   fun dp(context: Context, value: Int): Int = (value * context.resources.displayMetrics.density).toInt()
   fun dpf(context: Context, value: Float): Float = value * context.resources.displayMetrics.density
