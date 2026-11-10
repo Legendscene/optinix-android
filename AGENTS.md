@@ -674,7 +674,11 @@ on this machine and are lost on `expo prebuild --clean`. Re-apply them:
   lastUpdateTime **2026-11-10 13:52:57** (Realme's install prompt outlasted two adb
   timeouts — finished in the background), launch smoke clean with the phone asleep.
   Build B — **84,367,632 B**, SHA-256 `7021EED135536319077C25D5AC710DBEC705358031A6D888C97E0F6F62DA3EA1`
-  (interaction pass): **NOT installed yet** — needs user approval + prompt consent.
+  (interaction pass): **INSTALLED and verified** — user-approved `Success`,
+  device hash `7021eed1…3ea1` matches, lastUpdateTime **2026-11-10 14:33:00**,
+  launch smoke clean (process alive, no FATAL). On-device HUD walkthrough
+  (slide-in feel, centered plate, mono surfaces, stats HUD off after the
+  migration) is the user's.
 - **Earlier (2026-11-10 noon): HUD simplified to 3 tabs (Tools/Boost/Stats) + animated onboarding — installed and hash-verified.**
   From the user's "eazy to use" brief (the 6-line rail confused even him). Overlay
   sections cut 6→3: **Tools** (fresh open always lands here; now hosts the network
@@ -928,9 +932,10 @@ verified byte-for-byte, lastUpdateTime **2026-11-10 13:52:57**, launch smoke:
 process alive 10 s +, no FATAL (phone asleep — visual walkthrough is the user's).
 Build B (interaction pass above) **84,367,632 B**, SHA-256
 `7021EED135536319077C25D5AC710DBEC705358031A6D888C97E0F6F62DA3EA1` —
-**not installed**; device walkthrough (slide/collapse feel, centered plate,
-mono surface, stats HUD off after migration) pending. Pushed:
-`18846c9` (guides/reset) on `main`.
+**installed user-approved (Success, 14:33:00), device hash `7021eed1…3ea1`
+verified, launch smoke clean**; device walkthrough (slide/collapse feel,
+centered plate, mono surface, stats HUD off after migration) pending. Pushed:
+`18846c9` (guides/reset) + `5fecdd1` (interaction pass) on `main`.
 
 ### 2026-11-10 (noon) — HUD simplified to 3 tabs (Tools/Boost/Stats) + animated onboarding; installed and hash-verified
 
